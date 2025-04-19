@@ -1,0 +1,149 @@
+sensor:
+
+  - name: "Hours Since Last Blade Maintenance"
+        unique_id: blade_hours_since_maintenance
+        icon: mdi:timer-outline
+        unit_of_measurement: "h"
+        state: >
+          {% set last_hours = states('input_number.blade_last_reset_hours') | float(0) %}
+          {% set total_hours = states('sensor.labby_total_time') | float(0) %}
+          {% if total_hours >= last_hours %}
+            {{ (total_hours - last_hours) | round(1) }}
+          {% else %}
+            unknown
+          {% endif %}
+          
+    - name: "Time Since Last Mow Back Lawn - 1"
+      state: >
+        {% set last_mow = state_attr('input_datetime.back_lawn_last_mow_1', 'timestamp') %}
+        {% if last_mow %}
+          {{ ((as_datetime(now()) - as_datetime(last_mow)).days) }} days
+        {% else %}
+          unknown
+        {% endif %}
+
+    - name: "Time Since Last Mow Back Lawn - 2"
+      state: >
+        {% set last_mow = state_attr('input_datetime.back_lawn_last_mow_2', 'timestamp') %}
+        {% if last_mow %}
+          {{ ((as_datetime(now()) - as_datetime(last_mow)).days) }} days
+        {% else %}
+          unknown
+        {% endif %}
+
+    - name: "Time Since Last Mow Back Lawn - 3"
+      state: >
+        {% set last_mow = state_attr('input_datetime.back_lawn_last_mow_3', 'timestamp') %}
+        {% if last_mow %}
+          {{ ((as_datetime(now()) - as_datetime(last_mow)).days) }} days
+        {% else %}
+          unknown
+        {% endif %}
+
+    - name: "Time Since Last Mow Bottom Grass - 1"
+      state: >
+        {% set last_mow = state_attr('input_datetime.bottom_grass_last_mow_1', 'timestamp') %}
+        {% if last_mow %}
+          {{ ((as_datetime(now()) - as_datetime(last_mow)).days) }} days
+        {% else %}
+          unknown
+        {% endif %}
+
+    - name: "Time Since Last Mow Bottom Grass - 2"
+      state: >
+        {% set last_mow = state_attr('input_datetime.bottom_grass_last_mow_2', 'timestamp') %}
+        {% if last_mow %}
+          {{ ((as_datetime(now()) - as_datetime(last_mow)).days) }} days
+        {% else %}
+          unknown
+        {% endif %}
+
+    - name: "Time Since Last Mow Bottom Grass - 3"
+      state: >
+        {% set last_mow = state_attr('input_datetime.bottom_grass_last_mow_3', 'timestamp') %}
+        {% if last_mow %}
+          {{ ((as_datetime(now()) - as_datetime(last_mow)).days) }} days
+        {% else %}
+          unknown
+        {% endif %}
+
+    - name: "Time Since Last Mow Golf Lawn - 1"
+      state: >
+        {% set last_mow = state_attr('input_datetime.golf_lawn_last_mow_1', 'timestamp') %}
+        {% if last_mow %}
+          {{ ((as_datetime(now()) - as_datetime(last_mow)).days) }} days
+        {% else %}
+          unknown
+        {% endif %}
+
+    - name: "Time Since Last Mow Golf Lawn - 2"
+      state: >
+        {% set last_mow = state_attr('input_datetime.golf_lawn_last_mow_2', 'timestamp') %}
+        {% if last_mow %}
+          {{ ((as_datetime(now()) - as_datetime(last_mow)).days) }} days
+        {% else %}
+          unknown
+        {% endif %}
+
+    - name: "Time Since Last Mow Golf Lawn - 3"
+      state: >
+        {% set last_mow = state_attr('input_datetime.golf_lawn_last_mow_3', 'timestamp') %}
+        {% if last_mow %}
+          {{ ((as_datetime(now()) - as_datetime(last_mow)).days) }} days
+        {% else %}
+          unknown
+        {% endif %}
+
+    - name: "Time Since Last Mow Path to Top - 1"
+      state: >
+        {% set last_mow = state_attr('input_datetime.path_to_top_last_mow_1', 'timestamp') %}
+        {% if last_mow %}
+          {{ ((as_datetime(now()) - as_datetime(last_mow)).days) }} days
+        {% else %}
+          unknown
+        {% endif %}
+
+    - name: "Time Since Last Mow Path to Top - 2"
+      state: >
+        {% set last_mow = state_attr('input_datetime.path_to_top_last_mow_2', 'timestamp') %}
+        {% if last_mow %}
+          {{ ((as_datetime(now()) - as_datetime(last_mow)).days) }} days
+        {% else %}
+          unknown
+        {% endif %}
+
+    - name: "Time Since Last Mow Path to Top - 3"
+      state: >
+        {% set last_mow = state_attr('input_datetime.path_to_top_last_mow_3', 'timestamp') %}
+        {% if last_mow %}
+          {{ ((as_datetime(now()) - as_datetime(last_mow)).days) }} days
+        {% else %}
+          unknown
+        {% endif %}
+
+    - name: "Time Since Last Mow Top Lawn - 1"
+      state: >
+        {% set last_mow = state_attr('input_datetime.top_lawn_last_mow_1', 'timestamp') %}
+        {% if last_mow %}
+          {{ ((as_datetime(now()) - as_datetime(last_mow)).days) }} days
+        {% else %}
+          unknown
+        {% endif %}
+
+    - name: "Time Since Last Mow Top Lawn - 2"
+      state: >
+        {% set last_mow = state_attr('input_datetime.top_lawn_last_mow_2', 'timestamp') %}
+        {% if last_mow %}
+          {{ ((as_datetime(now()) - as_datetime(last_mow)).days) }} days
+        {% else %}
+          unknown
+        {% endif %}
+
+    - name: "Time Since Last Mow Top Lawn - 3"
+      state: >
+        {% set last_mow = state_attr('input_datetime.top_lawn_last_mow_3', 'timestamp') %}
+        {% if last_mow %}
+          {{ ((as_datetime(now()) - as_datetime(last_mow)).days) }} days
+        {% else %}
+          unknown
+        {% endif %}
