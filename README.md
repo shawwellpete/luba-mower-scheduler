@@ -45,10 +45,13 @@ Full explanation and setup guide here:
 
 ## 📂 What's Included
 
-- `helpers.yaml` — input helpers for setting schedules and status
-- `automations.yaml` — smart scheduler and rain-delay automations
-- `scripts.yaml` — mower control scripts
-- `dashboard.yaml` — Lovelace UI examples
+- `automations.yaml` — Smart scheduler and rain-delay automations
+- `dashboard.yaml` — Lovelace dashboard and Mushroom card layouts
+- `input_boolean.yaml` — Input booleans for controlling zones and conditions
+- `input_datetime.yaml` — Input datetimes for setting mow start times
+- `input_select.yaml` — Input selects for choosing mow schedules (once/twice per week)
+- `input_text.yaml` — Input texts for logging last mow, reason for delay, etc.
+- `scripts.yaml` — Scripts to start, stop, and control mower tasks
 
 ---
 
