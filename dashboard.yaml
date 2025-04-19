@@ -1,4 +1,8 @@
+title: Mower
+path: mower
 
+icon: mdi:robot-mower
+panel: false
 cards:
 
   - type: horizontal-stack
@@ -131,6 +135,10 @@ cards:
         icon: mdi:weather-sunny
 
 
+  # - type: custom:mushroom-entity-card
+  #   entity: lawn_mower.labby
+  #   name: Labby Status
+  #   icon_color: green
   - type: custom:mushroom-template-card
     primary: >
       {% if states('lawn_mower.labby') == 'mowing' %}
@@ -177,7 +185,14 @@ cards:
           data:
             entity_id: button.labby_undock
 
-
+      # - type: action
+      #   icon: mdi:map-marker-remove
+      #   name: clear maps
+      #   tap_action:
+      #     action: call-service
+      #     service: button.press
+      #     data:
+      #       entity_id: button.labby_clear_maps_and_area_names
   - type: grid #nudges
     columns: 2
     square: false
@@ -222,6 +237,7 @@ cards:
           data:
             entity_id: button.labby_emergency_nudge_back
 
+
   - type: custom:map-card
     focus_entity: device_tracker.labby_luba_vp8gt5gp
     tile_layer_url: /local/map/{z}/{x}/{y}.png
@@ -232,7 +248,7 @@ cards:
         size: 20
         display: marker
         history_start: 96 hours ago
-        history_line_color: blue
+        history_line_color: yellow
         history_show_dots: false
     card_size: 5
     tile_layers:
@@ -242,9 +258,7 @@ cards:
       maxZoom: 18
       maxNativeZoom: 20
       minZoom: 14
-    theme_mode: light 5
-
-
+    theme_mode: light
   - type: grid
     columns: 2
 
@@ -282,7 +296,12 @@ cards:
           action: more-info
       - type: custom:mushroom-template-card
         primary: |-
-          {% if states('sensor.sevenoaks_probability_of_precipitation') | float < 50 %} Prob of rain low {% else %} Prob of rain high {% endif %} secondary: >-
+          {% if states('sensor.sevenoaks_probability_of_precipitation') | float < 50 %}
+          Prob of rain low
+          {% else %}
+          Prob of rain high
+          {% endif %}
+        secondary: >-
           {% set prob = states('sensor.sevenoaks_probability_of_precipitation') | float %}
           Current prob: {{ prob }}%
         icon: |-
@@ -293,7 +312,109 @@ cards:
           {% endif %}
         entity: sensor.sevenoaks_probability_of_precipitation
         icon_color: |-
-          {% if states('sensor.sevenoaks_probability_of_precipitation') | float < 50 %} yellow {% else %} blue {% endif %} tap_action: action: more-info - type: custom:mushroom-entity-card entity: sensor.labby_l1_satellites_co_viewing name: L1 Co-Viewing - type: custom:mushroom-entity-card entity: sensor.labby_l2_satellites_co_viewing name: L2 Co-Viewing - type: custom:mushroom-entity-card entity: sensor.labby_progress name: Mowing Progress unit: '%' - type: custom:mushroom-entity-card entity: sensor.labby_elapsed_time name: Mowing Time unit: minutes - type: custom:mushroom-entity-card entity: sensor.labby_blade_height name: Blade Height unit: 'mm' # General Control - type: custom:mushroom-template-card # Back Lawn primary: Back Lawn secondary: "{{ states('sensor.time_since_last_mow_back_lawn_1') }} since last" icon: mdi:texture-box icon_color: |- {% if is_state('input_select.back_lawn_schedule', 'never') %} red {% else %} green {% endif %} tap_action: action: fire-dom-event browser_mod: service: browser_mod.popup data: title: Back Lawn Control content: type: grid columns: 1 square: false cards: - type: custom:mushroom-template-card entity: script.mow_back_lawn primary: Mow back lawn Now icon: mdi:texture-box icon_color: green tap_action: action: call-service service: script.mow_back_lawn hold_action: action: more-info - type: custom:mushroom-select-card entity: input_select.back_lawn_schedule name: Back Lawn Schedule icon_color: green - type: custom:mushroom-entity-card entity: input_datetime.back_lawn_next_time icon_color: green name: Back Lawn Schedule Time - click to change - type: custom:mushroom-template-card entity: input_datetime.back_lawn_last_mow_1 icon: mdi:mower primary: "{{ states('sensor.time_since_last_mow_back_lawn_1') }} last mow" secondary: "{{ states('input_datetime.back_lawn_last_mow_1') }}" icon_color: |- {% set days = states('sensor.time_since_last_mow_back_lawn_1').split()[0] | float(0) %} {% if days > 7 %}
+          {% if states('sensor.sevenoaks_probability_of_precipitation') | float < 50 %}
+          yellow
+          {% else %}
+          blue
+          {% endif %}
+        tap_action:
+          action: more-info
+
+
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.labby_l1_satellites_co_viewing
+        name: L1 Co-Viewing
+      - type: custom:mushroom-entity-card
+        entity: sensor.labby_l2_satellites_co_viewing
+        name: L2 Co-Viewing
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.labby_progress
+        name: Mowing Progress
+        unit: '%'
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.labby_elapsed_time
+        name: Mowing Time
+        unit: minutes
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.labby_blade_height
+        name: Blade Height
+        unit: 'mm'
+
+      - type: custom:mushroom-template-card
+        primary: "Tap {{ states('input_select.blade_maintenance_stage') }} Done"
+        secondary: "{{ states('sensor.hours_since_last_blade_maintenance') }} hours from last"
+        icon: mdi:check-decagram
+        icon_color: |-
+          {% set hours = states('sensor.hours_since_last_blade_maintenance') | float(0) %}
+          {% if hours > 50 %}
+          red
+          {% else %}
+          green
+          {% endif %}
+        tap_action:
+          action: call-service
+          confirmation:
+            text: Are you sure you want to confirm this maintenance step?
+          service: script.blade_maintenance_done
+
+  # General Control
+      - type: custom:mushroom-template-card                 # Back Lawn
+        primary: Back Lawn
+        secondary: "{{ states('sensor.time_since_last_mow_back_lawn_1') }} since last"
+        icon: mdi:texture-box
+        icon_color: |-
+          {% if is_state('input_select.back_lawn_schedule', 'never') %}
+          red
+          {% else %}
+          green
+          {% endif %}
+        tap_action:
+          action: fire-dom-event
+          browser_mod:
+            service: browser_mod.popup
+            data:
+              title: Back Lawn Control
+              content:
+                type: grid
+                columns: 1
+                square: false
+                cards:
+
+
+
+                  - type: custom:mushroom-template-card
+                    entity: script.mow_back_lawn
+                    primary: Mow back lawn Now
+                    icon: mdi:texture-box
+                    icon_color: green
+                    tap_action:
+                      action: call-service
+                      service: script.mow_back_lawn
+                    hold_action:
+                      action: more-info
+
+                  - type: custom:mushroom-select-card
+                    entity: input_select.back_lawn_schedule
+                    name: Back Lawn Schedule
+                    icon_color: green
+
+                  - type: custom:mushroom-entity-card
+                    entity: input_datetime.back_lawn_next_time
+                    icon_color: green
+                    name: Back Lawn Schedule Time - click to change
+
+                  - type: custom:mushroom-template-card
+                    entity: input_datetime.back_lawn_last_mow_1
+                    icon: mdi:mower
+                    primary: "{{ states('sensor.time_since_last_mow_back_lawn_1') }} last mow"
+                    secondary: "{{ states('input_datetime.back_lawn_last_mow_1') }}"
+                    icon_color: |-
+                      {% set days = states('sensor.time_since_last_mow_back_lawn_1').split()[0] | float(0) %}
+                      {% if days > 7 %}
                       red
                       {% else %}
                       green
@@ -622,4 +743,5 @@ cards:
               dismissable: true
               right_button: Close
               right_button_action:
-                service: browser_mod.close_popup
+                service: browser_mod.
+         
