@@ -1,0 +1,34 @@
+back_lawn_schedule:
+  name: Back Lawn Schedule
+  options:
+    - never
+    - once per week
+    - twice per week
+
+bottom_grass_schedule:
+  name: Bottom Grass Schedule
+  options:
+    - never
+    - once per week
+    - twice per week
+
+golf_lawn_schedule:
+  name: Golf Lawn Schedule
+  options:
+    - never
+    - once per week
+    - twice per week
+
+path_to_top_schedule:
+  name: Path to Top Schedule
+  options:
+    - never
+    - once per week
+    - twice per week
+
+top_lawn_schedule:
+  name: Top Lawn Schedule
+  options:
+    - never
+    - once per week
+    - twice per week
