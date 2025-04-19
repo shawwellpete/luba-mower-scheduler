@@ -32,3 +32,12 @@ top_lawn_schedule:
     - never
     - once per week
     - twice per week
+    
+blade_maintenance_stage:
+  name: Blade Maintenance Stage
+  options:
+    - Swap discs
+    - Rotate blades
+    - Swap discs again
+    - New blades
+  initial: Swap discs
