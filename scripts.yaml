@@ -153,3 +153,15 @@ mow_back_lawn:
       is_mow: false
       is_dump: false
       mowing_laps: 1
+
+blade_maintenance_done:
+  alias: Blade Maintenance Done
+  sequence:
+    - service: input_number.set_value
+      target:
+        entity_id: input_number.blade_last_reset_hours
+      data:
+        value: "{{ states('sensor.labby_total_time') | float(0) }}"
+    - service: input_select.select_next
+      target:
+        entity_id: input_select.blade_maintenance_stage
