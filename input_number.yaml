@@ -1,0 +1,6 @@
+blade_last_reset_hours:
+  name: Blade Last Reset Hours
+  min: 0
+  max: 10000
+  step: 0.1
+  unit_of_measurement: "h"
