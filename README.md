@@ -52,7 +52,7 @@ Full explanation and setup guide here:
 - `input_select.yaml` — Input selects for choosing mow schedules (once/twice per week)
 - `input_text.yaml` — Input texts for logging last mow, reason for delay, etc.
 - `scripts.yaml` — Scripts to start, stop, and control mower tasks
-- 'tenplate.yaml' - sensors used within the automations
+- `template.yaml` - sensors used within the automations
 
 ---
 
