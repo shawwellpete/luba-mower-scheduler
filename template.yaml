@@ -1,17 +1,18 @@
 sensor:
 
   - name: "Hours Since Last Blade Maintenance"
-        unique_id: blade_hours_since_maintenance
-        icon: mdi:timer-outline
-        unit_of_measurement: "h"
-        state: >
-          {% set last_hours = states('input_number.blade_last_reset_hours') | float(0) %}
-          {% set total_hours = states('sensor.labby_total_time') | float(0) %}
-          {% if total_hours >= last_hours %}
-            {{ (total_hours - last_hours) | round(1) }}
-          {% else %}
-            unknown
-          {% endif %}
+    unique_id: blade_hours_since_maintenance
+    icon: mdi:timer-outline
+    unit_of_measurement: "h"
+    state: >
+      {% set last_hours = states('input_number.blade_last_reset_hours') | float(0) %}
+      {% set total_minutes = states('sensor.labby_total_time') | float(0) %}
+      {% set total_hours = total_minutes / 60 %}
+      {% if total_hours >= last_hours %}
+        {{ (total_hours - last_hours) | round(1) }}
+      {% else %}
+        unknown
+      {% endif %}
           
     - name: "Time Since Last Mow Back Lawn - 1"
       state: >
