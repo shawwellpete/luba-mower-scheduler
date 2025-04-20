@@ -1,11 +1,14 @@
-title: Mower
-path: mower
-
+title: Labby2
+path: labby2
+visible:
+  - user: 8ade8783a1c34800b24fef4ae3c01c09 #kitchen ipad
+  - user: c462207ae4a04e4b91a55f631b94a086 #Peter
+  # - user: 5e0c53d915af416f99288ff3a1711586 #josh
 icon: mdi:robot-mower
 panel: false
 cards:
 
-  - type: horizontal-stack
+  - type: horizontal-stack #do not mow and night block
     cards:
       - type: custom:mushroom-template-card
         primary: |-
@@ -139,7 +142,7 @@ cards:
   #   entity: lawn_mower.labby
   #   name: Labby Status
   #   icon_color: green
-  - type: custom:mushroom-template-card
+  - type: custom:mushroom-template-card #general info on template
     primary: >
       {% if states('lawn_mower.labby') == 'mowing' %}
         Mowing {{ states('input_text.last_lawn_mowed') }}
@@ -163,7 +166,7 @@ cards:
         blue
       {% endif %}
     entity: lawn_mower.labby
-  - type: custom:mushroom-chips-card
+  - type: custom:mushroom-chips-card #chips
     chips:
       - type: entity
         entity: switch.labby_blades_on_off
@@ -264,7 +267,7 @@ cards:
 
     square: false
     cards:
-      - type: custom:mushroom-template-card
+      - type: custom:mushroom-template-card #history rain
         primary: |-
           {% set rain = states('sensor.owmh_home_day0rain') | float %}
           {% if rain == 0 %}
@@ -294,7 +297,7 @@ cards:
           {% endif %}
         tap_action:
           action: more-info
-      - type: custom:mushroom-template-card
+      - type: custom:mushroom-template-card # rain predicted
         primary: |-
           {% if states('sensor.sevenoaks_probability_of_precipitation') | float < 50 %}
           Prob of rain low
@@ -322,31 +325,51 @@ cards:
 
 
 
-      - type: custom:mushroom-entity-card
+      - type: custom:mushroom-entity-card #sat l1 
         entity: sensor.labby_l1_satellites_co_viewing
         name: L1 Co-Viewing
-      - type: custom:mushroom-entity-card
+      - type: custom:mushroom-entity-card #sat l2
         entity: sensor.labby_l2_satellites_co_viewing
         name: L2 Co-Viewing
 
-      - type: custom:mushroom-entity-card
+      - type: custom:mushroom-entity-card #progress
         entity: sensor.labby_progress
         name: Mowing Progress
         unit: '%'
 
-      - type: custom:mushroom-entity-card
+      - type: custom:mushroom-entity-card #mowing time
         entity: sensor.labby_elapsed_time
         name: Mowing Time
         unit: minutes
 
-      - type: custom:mushroom-entity-card
+      - type: custom:mushroom-entity-card #blade height
         entity: sensor.labby_blade_height
         name: Blade Height
         unit: 'mm'
 
+      # - type: custom:mushroom-template-card #maintenance
+      #   entity: sensor.hours_since_last_blade_maintenance
+
+      #   primary: "Tap {{ states('input_select.blade_maintenance_stage') }} Done"
+      #   secondary: "{{ states('sensor.hours_since_last_blade_maintenance') }} hours from last"
+      #   icon: mdi:check-decagram
+      #   icon_color: |-
+      #     {% set hours = states('sensor.hours_since_last_blade_maintenance') | float(0) %}
+      #     {% if hours > 50 %}
+      #     red
+      #     {% else %}
+      #     green
+      #     {% endif %}
+      #   tap_action:
+      #     action: call-service
+      #     confirmation:
+      #       text: Are you sure you want to confirm this maintenance step?
+      #     service: script.blade_maintenance_done
+
       - type: custom:mushroom-template-card
-        primary: "Tap {{ states('input_select.blade_maintenance_stage') }} Done"
-        secondary: "{{ states('sensor.hours_since_last_blade_maintenance') }} hours from last"
+        entity: sensor.hours_since_last_blade_maintenance
+        primary: "Maintenance"
+        secondary: "{{ states('sensor.hours_since_last_blade_maintenance') }} hrs last"
         icon: mdi:check-decagram
         icon_color: |-
           {% set hours = states('sensor.hours_since_last_blade_maintenance') | float(0) %}
@@ -356,14 +379,83 @@ cards:
           green
           {% endif %}
         tap_action:
-          action: call-service
-          confirmation:
-            text: Are you sure you want to confirm this maintenance step?
-          service: script.blade_maintenance_done
+          action: fire-dom-event
+          browser_mod:
+            service: browser_mod.popup
+            data:
+              title: Blade Maintenance
+              content:
+                type: grid
+                columns: 1
+                square: false
+                cards:
 
-  # General Control
+                - type: custom:mushroom-template-card
+                  primary: Swap Discs
+                  secondary: "{{ states('sensor.hours_since_last_blade_maintenance') }} hours since last maintenance"
+                  icon: mdi:sync
+                  icon_color: |-
+                    {% if is_state('input_select.blade_maintenance_stage', 'Swap discs') %}
+                    orange
+                    {% else %}
+                    grey
+                    {% endif %}
+                  tap_action:
+                    action: call-service
+                    confirmation:
+                      text: Are you sure you want to confirm this maintenance step?
+                    service: script.blade_maintenance_done
+
+                - type: custom:mushroom-template-card
+                  primary: Rotate Blades
+                  secondary: "{{ states('sensor.hours_since_last_blade_maintenance') }} hours since last maintenance"
+                  icon: mdi:rotate-right
+                  icon_color: |-
+                    {% if is_state('input_select.blade_maintenance_stage', 'Rotate blades') %}
+                    orange
+                    {% else %}
+                    grey
+                    {% endif %}
+                  tap_action:
+                    action: call-service
+                    confirmation:
+                      text: Are you sure you want to confirm this maintenance step?
+                    service: script.blade_maintenance_done
+
+                - type: custom:mushroom-template-card
+                  primary: Swap Discs Again
+                  secondary: "{{ states('sensor.hours_since_last_blade_maintenance') }} hours since last maintenance"
+                  icon: mdi:sync-alert
+                  icon_color: |-
+                    {% if is_state('input_select.blade_maintenance_stage', 'Swap discs again') %}
+                    orange
+                    {% else %}
+                    grey
+                    {% endif %}
+                  tap_action:
+                    action: call-service
+                    confirmation:
+                      text: Are you sure you want to confirm this maintenance step?
+                    service: script.blade_maintenance_done
+
+                - type: custom:mushroom-template-card
+                  primary: New Blades
+                  secondary: "{{ states('sensor.hours_since_last_blade_maintenance') }} hours since last maintenance"
+                  icon: mdi:knife-military
+                  icon_color: |-
+                    {% if is_state('input_select.blade_maintenance_stage', 'New blades') %}
+                    orange
+                    {% else %}
+                    grey
+                    {% endif %}
+                  tap_action:
+                    action: call-service
+                    confirmation:
+                      text: Are you sure you want to confirm this maintenance step?
+                    service: script.blade_maintenance_done
       - type: custom:mushroom-template-card                 # Back Lawn
         primary: Back Lawn
+        entity: sensor.time_since_last_mow_back_lawn_1
         secondary: "{{ states('sensor.time_since_last_mow_back_lawn_1') }} since last"
         icon: mdi:texture-box
         icon_color: |-
@@ -435,11 +527,14 @@ cards:
 
 
 
+
+
+
       
       - type: custom:mushroom-template-card #bottom grass
         primary: Bottom Grass Control
         secondary: "{{ states('sensor.time_since_last_mow_bottom_grass_1') }} since last"
- 
+        entity: sensor.time_since_last_mow_bottom_grass_1
         icon: mdi:grass
         icon_color: |-
           {% if is_state('input_select.bottom_grass_schedule', 'never') %}
@@ -514,7 +609,8 @@ cards:
               right_button_action:
                 service: browser_mod.close_popup
 
-      - type: custom:mushroom-template-card #golf lawn
+      - type: custom:mushroom-template-card #golf lawn\
+        entity: sensor.time_since_last_mow_golf_lawn_1
         primary: Golf Lawn Control
         secondary: "{{ states('sensor.time_since_last_mow_golf_lawn_1') }} since last"
 
@@ -594,6 +690,7 @@ cards:
 
       - type: custom:mushroom-template-card #top lawn
         primary: Top Lawn Control
+        entity: sensor.time_since_last_mow_top_lawn_1
         secondary: "{{ states('sensor.time_since_last_mow_top_lawn_1') }} since last"
 
         icon: mdi:weather-sunny
@@ -669,79 +766,110 @@ cards:
               right_button: Close
               right_button_action:
                 service: browser_mod.close_popup  
-      - type: custom:mushroom-template-card
-        primary: Path to Top Control
-        icon: mdi:road
-        icon_color: |-
-          {% if is_state('input_select.path_to_top_schedule', 'never') %}
-          red
-          {% else %}
-          green
-          {% endif %}
-        tap_action:
-          action: fire-dom-event
-          browser_mod:
-            service: browser_mod.popup
-            data:
-              title: Path to Top Control
-              content:
-                type: grid
-                columns: 1
-                square: false
-                cards:
-                  - type: custom:mushroom-template-card
-                    entity: script.mow_path_to_top
-                    primary: Mow path to top Now
-                    icon: mdi:road
-                    icon_color: green
-                    tap_action:
-                      action: call-service
-                      service: script.mow_path_to_top
-                    hold_action:
-                      action: more-info
+      # - type: custom:mushroom-template-card
+      #   primary: Path to Top Control
+      #   icon: mdi:road
+      #   icon_color: |-
+      #     {% if is_state('input_select.path_to_top_schedule', 'never') %}
+      #     red
+      #     {% else %}
+      #     green
+      #     {% endif %}
+      #   tap_action:
+      #     action: fire-dom-event
+      #     browser_mod:
+      #       service: browser_mod.popup
+      #       data:
+      #         title: Path to Top Control
+      #         content:
+      #           type: grid
+      #           columns: 1
+      #           square: false
+      #           cards:
+      #             - type: custom:mushroom-template-card
+      #               entity: script.mow_path_to_top
+      #               primary: Mow path to top Now
+      #               icon: mdi:road
+      #               icon_color: green
+      #               tap_action:
+      #                 action: call-service
+      #                 service: script.mow_path_to_top
+      #               hold_action:
+      #                 action: more-info
 
-                  - type: custom:mushroom-select-card
-                    entity: input_select.path_to_top_schedule
-                    name: Path to Top Schedule
-                    icon_color: |-
-                      {% if is_state('input_select.path_to_top_schedule', 'never') %}
-                      red
-                      {% else %}
-                      green
-                      {% endif %}
+      #             - type: custom:mushroom-select-card
+      #               entity: input_select.path_to_top_schedule
+      #               name: Path to Top Schedule
+      #               icon_color: |-
+      #                 {% if is_state('input_select.path_to_top_schedule', 'never') %}
+      #                 red
+      #                 {% else %}
+      #                 green
+      #                 {% endif %}
 
-                  - type: custom:mushroom-entity-card
-                    entity: input_datetime.path_to_top_next_time
-                    name: Path to Top Schedule Time
-                    icon_color: green
+      #             - type: custom:mushroom-entity-card
+      #               entity: input_datetime.path_to_top_next_time
+      #               name: Path to Top Schedule Time
+      #               icon_color: green
 
-                  - type: custom:mushroom-template-card
-                    entity: input_datetime.path_to_top_last_mow_1
-                    icon: mdi:mower
-                    primary: "{{ states('sensor.time_since_last_mow_path_to_top_1') }} days since last mow"
-                    secondary: "{{ states('input_datetime.path_to_top_last_mow_1') }}"
-                    icon_color: |-
-                      {% set days = states('sensor.time_since_last_mow_path_to_top_1').split()[0] | float(0) %}
-                      {% if days > 7 %}
-                      red
-                      {% else %}
-                      green
-                      {% endif %}
+      #             - type: custom:mushroom-template-card
+      #               entity: input_datetime.path_to_top_last_mow_1
+      #               icon: mdi:mower
+      #               primary: "{{ states('sensor.time_since_last_mow_path_to_top_1') }} days since last mow"
+      #               secondary: "{{ states('input_datetime.path_to_top_last_mow_1') }}"
+      #               icon_color: |-
+      #                 {% set days = states('sensor.time_since_last_mow_path_to_top_1').split()[0] | float(0) %}
+      #                 {% if days > 7 %}
+      #                 red
+      #                 {% else %}
+      #                 green
+      #                 {% endif %}
 
-                  - type: custom:mushroom-template-card
-                    entity: input_datetime.path_to_top_last_mow_2
-                    icon: mdi:mower
-                    primary: "{{ states('sensor.time_since_last_mow_path_to_top_2') }} days since previous mow"
-                    secondary: "{{ states('input_datetime.path_to_top_last_mow_2') }}"
-                    icon_color: |-
-                      {% set days = states('sensor.time_since_last_mow_path_to_top_2').split()[0] | float(0) %}
-                      {% if days > 14 %}
-                      red
-                      {% else %}
-                      green
-                      {% endif %}
-              dismissable: true
-              right_button: Close
-              right_button_action:
-                service: browser_mod.
-         
+      #             - type: custom:mushroom-template-card
+      #               entity: input_datetime.path_to_top_last_mow_2
+      #               icon: mdi:mower
+      #               primary: "{{ states('sensor.time_since_last_mow_path_to_top_2') }} days since previous mow"
+      #               secondary: "{{ states('input_datetime.path_to_top_last_mow_2') }}"
+      #               icon_color: |-
+      #                 {% set days = states('sensor.time_since_last_mow_path_to_top_2').split()[0] | float(0) %}
+      #                 {% if days > 14 %}
+      #                 red
+      #                 {% else %}
+      #                 green
+      #                 {% endif %}
+      #         dismissable: true
+      #         right_button: Close
+      #         right_button_action:
+      #           service: browser_mod.
+                
+      # - type: vertical-stack
+      #   cards:
+      #     - type: custom:mushroom-title-card
+ 
+
+      #     - type: custom:mushroom-template-card
+      #       primary: >
+      #         Next Maintenance Step: 
+      #         {{ states('input_select.blade_maintenance_stage') }}
+      #       secondary: >
+      #         Hours since last maintenance: 
+      #         {{ states('sensor.hours_since_last_blade_maintenance') }} h
+      #       icon: mdi:knife-military
+      #       icon_color: teal
+      #       layout: vertical
+
+      #     - type: custom:mushroom-entity-card
+      #       entity: sensor.hours_since_last_blade_maintenance
+      #       name: Hours Since Last Reset
+      #       icon: mdi:timer-outline
+      #       layout: vertical
+
+      #     - type: custom:mushroom-template-card
+      #       primary: Confirm Blade Maintenance Done
+      #       secondary: Press to record step and reset hours
+      #       icon: mdi:check-decagram
+      #       icon_color: green
+      #       tap_action:
+      #         action: call-service
+      #         service: script.blade_maintenance_done
+      #       layout: vertical
