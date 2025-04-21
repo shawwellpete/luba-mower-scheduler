@@ -369,7 +369,7 @@ cards:
       - type: custom:mushroom-template-card
         entity: sensor.hours_since_last_blade_maintenance
         primary: "Maintenance"
-        secondary: "{{ states('sensor.hours_since_last_blade_maintenance') }} hrs last"
+        secondary: "{{ states('sensor.hours_since_last_blade_maintenance') }} hours since last"
         icon: mdi:check-decagram
         icon_color: |-
           {% set hours = states('sensor.hours_since_last_blade_maintenance') | float(0) %}
@@ -383,7 +383,7 @@ cards:
           browser_mod:
             service: browser_mod.popup
             data:
-              title: Blade Maintenance
+              title: Blade Maintenance - tap to update
               content:
                 type: grid
                 columns: 1
@@ -391,7 +391,7 @@ cards:
                 cards:
 
                 - type: custom:mushroom-template-card
-                  primary: Swap Discs
+                  primary: next - Swap Discs
                   secondary: "{{ states('sensor.hours_since_last_blade_maintenance') }} hours since last maintenance"
                   icon: mdi:sync
                   icon_color: |-
@@ -406,8 +406,8 @@ cards:
                       text: Are you sure you want to confirm this maintenance step?
                     service: script.blade_maintenance_done
 
-                - type: custom:mushroom-template-card
-                  primary: Rotate Blades
+                - type:  custom:mushroom-template-card
+                  primary: next - Rotate Blades
                   secondary: "{{ states('sensor.hours_since_last_blade_maintenance') }} hours since last maintenance"
                   icon: mdi:rotate-right
                   icon_color: |-
@@ -423,7 +423,7 @@ cards:
                     service: script.blade_maintenance_done
 
                 - type: custom:mushroom-template-card
-                  primary: Swap Discs Again
+                  primary: next - Swap Discs Again
                   secondary: "{{ states('sensor.hours_since_last_blade_maintenance') }} hours since last maintenance"
                   icon: mdi:sync-alert
                   icon_color: |-
@@ -438,8 +438,8 @@ cards:
                       text: Are you sure you want to confirm this maintenance step?
                     service: script.blade_maintenance_done
 
-                - type: custom:mushroom-template-card
-                  primary: New Blades
+                - type: custom:mushroom-template-card 
+                  primary: next - New Blades
                   secondary: "{{ states('sensor.hours_since_last_blade_maintenance') }} hours since last maintenance"
                   icon: mdi:knife-military
                   icon_color: |-
