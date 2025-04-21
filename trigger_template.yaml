@@ -1,0 +1,16 @@
+- trigger:
+    - platform: state
+      entity_id: sensor.labby_task_duration
+  sensor:
+    - name: "Hours Since Last Blade Maintenance"
+      unique_id: hours_since_last_blade_maintenance
+      unit_of_measurement: "h"
+      icon: mdi:timer-outline
+      state: >
+        {% set saved = states('input_number.blade_maintenance_tasktime_saved') | float(0) %}
+        {% set current = states('sensor.labby_task_duration') | float(0) %}
+        {% if current >= saved %}
+          {{ ((current - saved) / 3600) | round(1) }}
+        {% else %}
+          0
+        {% endif %}
