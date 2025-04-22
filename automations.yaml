@@ -304,12 +304,18 @@
     - condition: numeric_state
       entity_id: sensor.labby_battery
       above: 95
-    - condition: sun
-      before: sunset
-      before_offset: '1'
+    - condition: template
+      value_template: "{% set now = now() %} {% set sunrise = state_attr('sun.sun',
+        'next_rising') %} {% set sunset = state_attr('sun.sun', 'next_setting') %}
+        {% if sunrise and sunset %}\n  {{ (now > (as_datetime(sunrise) + timedelta(hours=1)))
+        and (now < (as_datetime(sunset) - timedelta(hours=1))) }}\n{% else %}\n  false\n{%
+        endif %}\n"
   actions:
-  - entity_id: input_boolean.do_not_mow
+  - target:
+      entity_id: input_boolean.do_not_mow
     action: input_boolean.turn_off
+  mode: single
+
 - id: do_not_mow_before_sunset
   alias: Do Not Mow Before Sunset
   triggers:
