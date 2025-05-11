@@ -47,6 +47,13 @@ cards:
           {% else %}
             Night mowing allowed
           {% endif %}
+        secondary: |-
+          {% if is_state('input_boolean.block_night_mowing', 'on') %}
+            hedgehogs safe
+          {% else %}
+            hedgehogs screwed
+          {% endif %}
+
         icon: |-
           {% if is_state('input_boolean.block_night_mowing', 'on') %}
             mdi:weather-night
@@ -240,7 +247,8 @@ cards:
           data:
             entity_id: button.labby_emergency_nudge_back
 
-
+  - type: custom:camera-agora-card
+    entity: camera.labby_none
   - type: custom:map-card
     focus_entity: device_tracker.labby_luba_vp8gt5gp
     tile_layer_url: /local/map/{z}/{x}/{y}.png
@@ -250,7 +258,7 @@ cards:
         picture:  /local/pictures/luba2.png
         size: 20
         display: marker
-        history_start: 96 hours ago
+        history_start: 24 hours ago
         history_line_color: yellow
         history_show_dots: false
     card_size: 5
