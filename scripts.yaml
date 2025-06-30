@@ -1,16 +1,128 @@
-mow_bottom_grass:
-  alias: Mow Bottom Grass
+mow_back_lawn:
+  alias: Mow Back Lawn
   sequence:
+  - target:
+      entity_id: input_datetime.back_lawn_last_mow_3
+    data:
+      datetime: '{{ states(''input_datetime.back_lawn_last_mow_2'') }}'
+    action: input_datetime.set_datetime
+  - target:
+      entity_id: input_datetime.back_lawn_last_mow_2
+    data:
+      datetime: '{{ states(''input_datetime.back_lawn_last_mow_1'') }}'
+    action: input_datetime.set_datetime
+  - target:
+      entity_id: input_datetime.back_lawn_last_mow_1
+    data:
+      datetime: '{{ now().strftime(''%Y-%m-%d %H:%M:%S'') }}'
+    action: input_datetime.set_datetime
   - action: mammotion.start_mow
     target:
       entity_id: lawn_mower.labby
     data:
-      speed: 0.3
+      speed: 0.2
       ultra_wave: 2
+      channel_mode: 0
+      rain_tactics: 1
+      blade_height: 60
+      toward_mode: 0
+      border_mode: 0
+      obstacle_laps: 0
+      areas:
+      - switch.labby_area_back_lawn
+      start_progress: 0
+      toward: -90
+      is_mow: true
+      is_dump: false
+      mowing_laps: 1
+      channel_width: 15
+  - target:
+      entity_id: input_datetime.back_lawn_next_time
+    data:
+      datetime: '{% if is_state(''input_select.back_lawn_schedule'', ''once per week'')
+        %} {{ (now() + timedelta(days=7)).strftime(''%Y-%m-%d %H:%M:%S'') }} {% elif
+        is_state(''input_select.back_lawn_schedule'', ''twice per week'') %} {{ (now()
+        + timedelta(days=3)).strftime(''%Y-%m-%d %H:%M:%S'') }} {% else %} {{ now().strftime(''%Y-%m-%d
+        %H:%M:%S'') }} {% endif %}'
+    action: input_datetime.set_datetime
+  description: ''
+  icon: mdi:robot-mower
+mow_solar_lawn:
+  alias: Mow Solar Lawn
+  sequence:
+  - service: input_datetime.set_datetime
+    target:
+      entity_id: input_datetime.solar_lawn_last_mow_3
+    data:
+      datetime: '{{ states(''input_datetime.solar_lawn_last_mow_2'') }}'
+  - service: input_datetime.set_datetime
+    target:
+      entity_id: input_datetime.solar_lawn_last_mow_2
+    data:
+      datetime: '{{ states(''input_datetime.solar_lawn_last_mow_1'') }}'
+  - service: input_datetime.set_datetime
+    target:
+      entity_id: input_datetime.solar_lawn_last_mow_1
+    data:
+      datetime: '{{ now().strftime(''%Y-%m-%d %H:%M:%S'') }}'
+  - action: mammotion.start_mow
+    target:
+      entity_id: lawn_mower.labby
+    data:
+      speed: 0.4
+      ultra_wave: 1
+      channel_mode: 0
+      channel_width: 20
+      rain_tactics: 1
+      blade_height: 60
+      toward_mode: 0
+      border_mode: 0
+      obstacle_laps: 0
+      areas:
+      - switch.labby_area_solar_lawn
+      toward: -90
+      is_mow: true
+      is_dump: false
+      mowing_laps: 0
+  - target:
+      entity_id: input_datetime.solar_lawn_next_time
+    data:
+      datetime: '{% if is_state(''input_select.solar_lawn_schedule'', ''once per week'')
+        %} {{ (now() + timedelta(days=7)).strftime(''%Y-%m-%d %H:%M:%S'') }} {% elif
+        is_state(''input_select.solar_lawn_schedule'', ''twice per week'') %} {{ (now()
+        + timedelta(days=3)).strftime(''%Y-%m-%d %H:%M:%S'') }} {% else %} {{ now().strftime(''%Y-%m-%d
+        %H:%M:%S'') }} {% endif %}'
+    action: input_datetime.set_datetime
+  description: ''
+  icon: mdi:robot-mower
+mow_bottom_grass:
+  alias: Mow Bottom Grass
+  sequence:
+  - service: input_datetime.set_datetime
+    target:
+      entity_id: input_datetime.bottom_grass_last_mow_3
+    data:
+      datetime: '{{ states(''input_datetime.bottom_grass_last_mow_2'') }}'
+  - service: input_datetime.set_datetime
+    target:
+      entity_id: input_datetime.bottom_grass_last_mow_2
+    data:
+      datetime: '{{ states(''input_datetime.bottom_grass_last_mow_1'') }}'
+  - service: input_datetime.set_datetime
+    target:
+      entity_id: input_datetime.bottom_grass_last_mow_1
+    data:
+      datetime: '{{ now().strftime(''%Y-%m-%d %H:%M:%S'') }}'
+  - action: mammotion.start_mow
+    target:
+      entity_id: lawn_mower.labby
+    data:
+      speed: 0.2
+      ultra_wave: 0
       channel_mode: 2
       channel_width: 20
       rain_tactics: 1
-      blade_height: 40
+      blade_height: 50
       toward: 0
       toward_included_angle: 0
       toward_mode: 0
@@ -20,30 +132,46 @@ mow_bottom_grass:
       areas:
       - switch.labby_area_bottom_grass
       mowing_laps: 0
+      is_dump: false
   - target:
       entity_id: input_datetime.bottom_grass_next_time
     data:
-      datetime: "{% if is_state('input_select.bottom_grass_schedule', 'once per week')
-        %}\n  {{ (now() + timedelta(days=7)).strftime('%Y-%m-%d %H:%M:%S') }}\n{%
-        elif is_state('input_select.bottom_grass_schedule', 'twice per week') %}\n
-        \ {{ (now() + timedelta(days=3)).strftime('%Y-%m-%d %H:%M:%S') }}\n{% else
-        %}\n  {{ now().strftime('%Y-%m-%d %H:%M:%S') }}\n{% endif %}"
+      datetime: '{% if is_state(''input_select.bottom_grass_schedule'', ''once per
+        week'') %} {{ (now() + timedelta(days=7)).strftime(''%Y-%m-%d %H:%M:%S'')
+        }} {% elif is_state(''input_select.bottom_grass_schedule'', ''twice per week'')
+        %} {{ (now() + timedelta(days=3)).strftime(''%Y-%m-%d %H:%M:%S'') }} {% else
+        %} {{ now().strftime(''%Y-%m-%d %H:%M:%S'') }} {% endif %}'
     action: input_datetime.set_datetime
   description: ''
   icon: mdi:robot-mower
 mow_golf_lawn:
   alias: Mow Golf Lawn
   sequence:
+  - service: input_datetime.set_datetime
+    target:
+      entity_id: input_datetime.golf_lawn_last_mow_3
+    data:
+      datetime: '{{ states(''input_datetime.golf_lawn_last_mow_2'') }}'
+  - service: input_datetime.set_datetime
+    target:
+      entity_id: input_datetime.golf_lawn_last_mow_2
+    data:
+      datetime: '{{ states(''input_datetime.golf_lawn_last_mow_1'') }}'
+  - service: input_datetime.set_datetime
+    target:
+      entity_id: input_datetime.golf_lawn_last_mow_1
+    data:
+      datetime: '{{ now().strftime(''%Y-%m-%d %H:%M:%S'') }}'
   - action: mammotion.start_mow
     target:
       entity_id: lawn_mower.labby
     data:
-      speed: 0.3
-      ultra_wave: 2
+      speed: 0.2
+      ultra_wave: 0
       channel_mode: 2
       channel_width: 20
       rain_tactics: 1
-      blade_height: 40
+      blade_height: 50
       toward: -90
       toward_included_angle: 0
       toward_mode: 0
@@ -52,20 +180,86 @@ mow_golf_lawn:
       start_progress: 0
       areas:
       - switch.labby_area_golf_lawn
+      is_dump: false
   - target:
       entity_id: input_datetime.golf_lawn_next_time
     data:
-      datetime: "{% if is_state('input_select.golf_lawn_schedule', 'once per week')
-        %}\n  {{ (now() + timedelta(days=7)).strftime('%Y-%m-%d %H:%M:%S') }}\n{%
-        elif is_state('input_select.golf_lawn_schedule', 'twice per week') %}\n  {{
-        (now() + timedelta(days=3)).strftime('%Y-%m-%d %H:%M:%S') }}\n{% else %}\n
-        \ {{ now().strftime('%Y-%m-%d %H:%M:%S') }}\n{% endif %}"
+      datetime: '{% if is_state(''input_select.golf_lawn_schedule'', ''once per week'')
+        %} {{ (now() + timedelta(days=7)).strftime(''%Y-%m-%d %H:%M:%S'') }} {% elif
+        is_state(''input_select.golf_lawn_schedule'', ''twice per week'') %} {{ (now()
+        + timedelta(days=3)).strftime(''%Y-%m-%d %H:%M:%S'') }} {% else %} {{ now().strftime(''%Y-%m-%d
+        %H:%M:%S'') }} {% endif %}'
+    action: input_datetime.set_datetime
+  description: ''
+  icon: mdi:robot-mower
+mow_top_lawn:
+  alias: Mow Top Lawn
+  sequence:
+  - service: input_datetime.set_datetime
+    target:
+      entity_id: input_datetime.top_lawn_last_mow_3
+    data:
+      datetime: '{{ states(''input_datetime.top_lawn_last_mow_2'') }}'
+  - service: input_datetime.set_datetime
+    target:
+      entity_id: input_datetime.top_lawn_last_mow_2
+    data:
+      datetime: '{{ states(''input_datetime.top_lawn_last_mow_1'') }}'
+  - service: input_datetime.set_datetime
+    target:
+      entity_id: input_datetime.top_lawn_last_mow_1
+    data:
+      datetime: '{{ now().strftime(''%Y-%m-%d %H:%M:%S'') }}'
+  - action: mammotion.start_mow
+    target:
+      entity_id: lawn_mower.labby
+    data:
+      speed: 0.2
+      ultra_wave: 0
+      channel_mode: 2
+      channel_width: 20
+      rain_tactics: 0
+      blade_height: 50
+      toward: 0
+      toward_included_angle: 0
+      toward_mode: 0
+      border_mode: 0
+      obstacle_laps: 0
+      start_progress: 0
+      areas:
+      - switch.labby_area_top_lawn
+      is_dump: false
+      is_mow: true
+      mowing_laps: 0
+  - target:
+      entity_id: input_datetime.top_lawn_next_time
+    data:
+      datetime: '{% if is_state(''input_select.top_lawn_schedule'', ''once per week'')
+        %} {{ (now() + timedelta(days=7)).strftime(''%Y-%m-%d %H:%M:%S'') }} {% elif
+        is_state(''input_select.top_lawn_schedule'', ''twice per week'') %} {{ (now()
+        + timedelta(days=3)).strftime(''%Y-%m-%d %H:%M:%S'') }} {% else %} {{ now().strftime(''%Y-%m-%d
+        %H:%M:%S'') }} {% endif %}'
     action: input_datetime.set_datetime
   description: ''
   icon: mdi:robot-mower
 mow_path_to_top:
-  alias: Mow path to top
+  alias: Mow Path to Top
   sequence:
+  - service: input_datetime.set_datetime
+    target:
+      entity_id: input_datetime.path_to_top_last_mow_3
+    data:
+      datetime: '{{ states(''input_datetime.path_to_top_last_mow_2'') }}'
+  - service: input_datetime.set_datetime
+    target:
+      entity_id: input_datetime.path_to_top_last_mow_2
+    data:
+      datetime: '{{ states(''input_datetime.path_to_top_last_mow_1'') }}'
+  - service: input_datetime.set_datetime
+    target:
+      entity_id: input_datetime.path_to_top_last_mow_1
+    data:
+      datetime: '{{ now().strftime(''%Y-%m-%d %H:%M:%S'') }}'
   - action: mammotion.start_mow
     target:
       entity_id: lawn_mower.labby
@@ -87,73 +281,63 @@ mow_path_to_top:
   - target:
       entity_id: input_datetime.path_to_top_next_time
     data:
-      datetime: "{% if is_state('input_select.path_to_top_schedule', 'once per week')
-        %}\n  {{ (now() + timedelta(days=7)).strftime('%Y-%m-%d %H:%M:%S') }}\n{%
-        elif is_state('input_select.path_to_top_schedule', 'twice per week') %}\n
-        \ {{ (now() + timedelta(days=3)).strftime('%Y-%m-%d %H:%M:%S') }}\n{% else
-        %}\n  {{ now().strftime('%Y-%m-%d %H:%M:%S') }}\n{% endif %}"
+      datetime: '{% if is_state(''input_select.path_to_top_schedule'', ''once per
+        week'') %} {{ (now() + timedelta(days=7)).strftime(''%Y-%m-%d %H:%M:%S'')
+        }} {% elif is_state(''input_select.path_to_top_schedule'', ''twice per week'')
+        %} {{ (now() + timedelta(days=3)).strftime(''%Y-%m-%d %H:%M:%S'') }} {% else
+        %} {{ now().strftime(''%Y-%m-%d %H:%M:%S'') }} {% endif %}'
     action: input_datetime.set_datetime
   description: ''
   icon: mdi:robot-mower
-mow_top_lawn:
-  alias: Mow top lawn
+mow_drive_lawn:
+  alias: Mow Drive Lawn
   sequence:
+  - service: input_datetime.set_datetime
+    target:
+      entity_id: input_datetime.drive_lawn_last_mow_3
+    data:
+      datetime: '{{ states(''input_datetime.drive_lawn_last_mow_2'') }}'
+  - service: input_datetime.set_datetime
+    target:
+      entity_id: input_datetime.drive_lawn_last_mow_2
+    data:
+      datetime: '{{ states(''input_datetime.drive_lawn_last_mow_1'') }}'
+  - service: input_datetime.set_datetime
+    target:
+      entity_id: input_datetime.drive_lawn_last_mow_1
+    data:
+      datetime: '{{ now().strftime(''%Y-%m-%d %H:%M:%S'') }}'
   - action: mammotion.start_mow
     target:
       entity_id: lawn_mower.labby
     data:
       speed: 0.3
-      ultra_wave: 0
+      ultra_wave: 1
       channel_mode: 2
-      channel_width: 20
-      rain_tactics: 0
-      blade_height: 30
-      toward: 0
-      toward_included_angle: 0
+      rain_tactics: 1
+      blade_height: 60
       toward_mode: 0
       border_mode: 0
       obstacle_laps: 0
-      start_progress: 0
       areas:
-      - switch.labby_area_top_lawn
+      - switch.labby_area_drive_lawn
+      start_progress: 0
+      toward: -90
+      is_mow: true
       is_dump: false
-      is_mow: false
       mowing_laps: 0
+      channel_width: 20
   - target:
-      entity_id: input_datetime.top_lawn_next_time
+      entity_id: input_datetime.drive_lawn_next_time
     data:
-      datetime: "{% if is_state('input_select.top_lawn_schedule', 'once per week')
-        %}\n  {{ (now() + timedelta(days=7)).strftime('%Y-%m-%d %H:%M:%S') }}\n{%
-        elif is_state('input_select.top_lawn_schedule', 'twice per week') %}\n  {{
-        (now() + timedelta(days=3)).strftime('%Y-%m-%d %H:%M:%S') }}\n{% else %}\n
-        \ {{ now().strftime('%Y-%m-%d %H:%M:%S') }}\n{% endif %}"
+      datetime: '{% if is_state(''input_select.drive_lawn_schedule'', ''once per week'')
+        %} {{ (now() + timedelta(days=7)).strftime(''%Y-%m-%d %H:%M:%S'') }} {% elif
+        is_state(''input_select.drive_lawn_schedule'', ''twice per week'') %} {{ (now()
+        + timedelta(days=3)).strftime(''%Y-%m-%d %H:%M:%S'') }} {% else %} {{ now().strftime(''%Y-%m-%d
+        %H:%M:%S'') }} {% endif %}'
     action: input_datetime.set_datetime
   description: ''
   icon: mdi:robot-mower
-mow_back_lawn:
-  alias: Mow back lawn
-  sequence:
-  - action: mammotion.start_mow
-    target:
-      entity_id: lawn_mower.labby
-    data:
-      speed: 0.2
-      ultra_wave: 0
-      channel_mode: 0
-      channel_width: 20
-      rain_tactics: 1
-      blade_height: 30
-      toward_mode: 0
-      border_mode: 0
-      obstacle_laps: 0
-      areas:
-      - switch.labby_area_back_lawn
-      start_progress: 0
-      toward: -90
-      is_mow: false
-      is_dump: false
-      mowing_laps: 1
-
 blade_maintenance_done:
   alias: Blade Maintenance Done
   sequence:
