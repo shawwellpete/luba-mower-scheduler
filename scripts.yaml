@@ -21,10 +21,10 @@ mow_back_lawn:
       entity_id: lawn_mower.labby
     data:
       speed: 0.2
-      ultra_wave: 2
+      ultra_wave: '1'
       channel_mode: 0
       rain_tactics: 1
-      blade_height: 60
+      blade_height: 50
       toward_mode: 0
       border_mode: 0
       obstacle_laps: 0
@@ -35,7 +35,7 @@ mow_back_lawn:
       is_mow: true
       is_dump: false
       mowing_laps: 1
-      channel_width: 15
+      channel_width: 10
   - target:
       entity_id: input_datetime.back_lawn_next_time
     data:
@@ -50,21 +50,21 @@ mow_back_lawn:
 mow_solar_lawn:
   alias: Mow Solar Lawn
   sequence:
-  - service: input_datetime.set_datetime
-    target:
+  - target:
       entity_id: input_datetime.solar_lawn_last_mow_3
     data:
       datetime: '{{ states(''input_datetime.solar_lawn_last_mow_2'') }}'
-  - service: input_datetime.set_datetime
-    target:
+    action: input_datetime.set_datetime
+  - target:
       entity_id: input_datetime.solar_lawn_last_mow_2
     data:
       datetime: '{{ states(''input_datetime.solar_lawn_last_mow_1'') }}'
-  - service: input_datetime.set_datetime
-    target:
+    action: input_datetime.set_datetime
+  - target:
       entity_id: input_datetime.solar_lawn_last_mow_1
     data:
       datetime: '{{ now().strftime(''%Y-%m-%d %H:%M:%S'') }}'
+    action: input_datetime.set_datetime
   - action: mammotion.start_mow
     target:
       entity_id: lawn_mower.labby
@@ -74,7 +74,6 @@ mow_solar_lawn:
       channel_mode: 0
       channel_width: 20
       rain_tactics: 1
-      blade_height: 60
       toward_mode: 0
       border_mode: 0
       obstacle_laps: 0
@@ -84,6 +83,7 @@ mow_solar_lawn:
       is_mow: true
       is_dump: false
       mowing_laps: 0
+      blade_height: 50
   - target:
       entity_id: input_datetime.solar_lawn_next_time
     data:
