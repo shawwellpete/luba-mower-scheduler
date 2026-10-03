@@ -1,201 +1,150 @@
-# Scheduler + rain/night automations.
-# Add under   automation: !include automations.yaml   in configuration.yaml
-#
-# One scheduler per zone (Lawn 1/2/3) plus four shared rain/night automations.
-# The schedulers fire at each zone's <lawn>_next_time and run the mow if:
-#   - mowing automation is enabled,
-#   - the zone's schedule isn't "never",
-#   - the global do_not_mow flag is off (rain/night), and
-#   - the mower isn't already mowing/returning.
-# Otherwise the next_time is pushed forward an hour (jumping past dusk at night),
-# so a blocked zone retries automatically.
-
-# ===========================================================================
-# Per-zone schedulers
-# ===========================================================================
-
+# Single-mower scheduler with retry-before-dispatch, stale-time recovery and idle-only task synchronization.
 - id: lawn_1_scheduler
   alias: Lawn 1 Scheduler
-  trigger:
-    - platform: time
+  mode: single
+  triggers:
+    - trigger: time
       at: input_datetime.lawn_1_next_time
-  condition:
+  conditions:
     - condition: state
       entity_id: input_boolean.mowing_automation_enabled
       state: "on"
-  action:
+    - condition: template
+      value_template: "{{ states('input_select.lawn_1_schedule') in ['once per week', 'twice per week'] }}"
+  actions:
+    - action: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.lawn_1_next_time
+      data:
+        datetime: "{{ (now() + timedelta(hours=1)).strftime('%Y-%m-%d %H:%M:%S') }}"
     - choose:
         - conditions:
             - condition: template
-              value_template: >
-                {{ not is_state('input_select.lawn_1_schedule', 'never')
-                   and is_state('input_boolean.do_not_mow', 'off')
-                   and states('lawn_mower.mower') not in ['mowing', 'returning'] }}
+              value_template: >-
+                {{ is_state('input_boolean.do_not_mow','off') and
+                is_state('binary_sensor.mowing_conditions_blocked','off') and states('lawn_mower.mower') in
+                ['docked','idle'] and is_state('script.mow_lawn','off') }}
           sequence:
             - action: script.mow_lawn_1
-      default:
-        - action: input_datetime.set_datetime
-          target: { entity_id: input_datetime.lawn_1_next_time }
-          data:
-            datetime: >
-              {% set t = now() + timedelta(hours=1) %}
-              {% set sunset = as_timestamp(state_attr('sun.sun', 'next_setting')) %}
-              {% set sunrise = as_timestamp(state_attr('sun.sun', 'next_rising')) %}
-              {% if t.timestamp() >= (sunset - 7200) %}
-                {{ (sunrise + 7200) | timestamp_custom('%Y-%m-%d %H:%M:%S', true) }}
-              {% else %}
-                {{ t.strftime('%Y-%m-%d %H:%M:%S') }}
-              {% endif %}
-  mode: single
-
+              data:
+                source: schedule
 - id: lawn_2_scheduler
   alias: Lawn 2 Scheduler
-  trigger:
-    - platform: time
+  mode: single
+  triggers:
+    - trigger: time
       at: input_datetime.lawn_2_next_time
-  condition:
+  conditions:
     - condition: state
       entity_id: input_boolean.mowing_automation_enabled
       state: "on"
-  action:
+    - condition: template
+      value_template: "{{ states('input_select.lawn_2_schedule') in ['once per week', 'twice per week'] }}"
+  actions:
+    - action: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.lawn_2_next_time
+      data:
+        datetime: "{{ (now() + timedelta(hours=1)).strftime('%Y-%m-%d %H:%M:%S') }}"
     - choose:
         - conditions:
             - condition: template
-              value_template: >
-                {{ not is_state('input_select.lawn_2_schedule', 'never')
-                   and is_state('input_boolean.do_not_mow', 'off')
-                   and states('lawn_mower.mower') not in ['mowing', 'returning'] }}
+              value_template: >-
+                {{ is_state('input_boolean.do_not_mow','off') and
+                is_state('binary_sensor.mowing_conditions_blocked','off') and states('lawn_mower.mower') in
+                ['docked','idle'] and is_state('script.mow_lawn','off') }}
           sequence:
             - action: script.mow_lawn_2
-      default:
-        - action: input_datetime.set_datetime
-          target: { entity_id: input_datetime.lawn_2_next_time }
-          data:
-            datetime: >
-              {% set t = now() + timedelta(hours=1) %}
-              {% set sunset = as_timestamp(state_attr('sun.sun', 'next_setting')) %}
-              {% set sunrise = as_timestamp(state_attr('sun.sun', 'next_rising')) %}
-              {% if t.timestamp() >= (sunset - 7200) %}
-                {{ (sunrise + 7200) | timestamp_custom('%Y-%m-%d %H:%M:%S', true) }}
-              {% else %}
-                {{ t.strftime('%Y-%m-%d %H:%M:%S') }}
-              {% endif %}
-  mode: single
-
+              data:
+                source: schedule
 - id: lawn_3_scheduler
   alias: Lawn 3 Scheduler
-  trigger:
-    - platform: time
+  mode: single
+  triggers:
+    - trigger: time
       at: input_datetime.lawn_3_next_time
-  condition:
+  conditions:
     - condition: state
       entity_id: input_boolean.mowing_automation_enabled
       state: "on"
-  action:
+    - condition: template
+      value_template: "{{ states('input_select.lawn_3_schedule') in ['once per week', 'twice per week'] }}"
+  actions:
+    - action: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.lawn_3_next_time
+      data:
+        datetime: "{{ (now() + timedelta(hours=1)).strftime('%Y-%m-%d %H:%M:%S') }}"
     - choose:
         - conditions:
             - condition: template
-              value_template: >
-                {{ not is_state('input_select.lawn_3_schedule', 'never')
-                   and is_state('input_boolean.do_not_mow', 'off')
-                   and states('lawn_mower.mower') not in ['mowing', 'returning'] }}
+              value_template: >-
+                {{ is_state('input_boolean.do_not_mow','off') and
+                is_state('binary_sensor.mowing_conditions_blocked','off') and states('lawn_mower.mower') in
+                ['docked','idle'] and is_state('script.mow_lawn','off') }}
           sequence:
             - action: script.mow_lawn_3
-      default:
-        - action: input_datetime.set_datetime
-          target: { entity_id: input_datetime.lawn_3_next_time }
-          data:
-            datetime: >
-              {% set t = now() + timedelta(hours=1) %}
-              {% set sunset = as_timestamp(state_attr('sun.sun', 'next_setting')) %}
-              {% set sunrise = as_timestamp(state_attr('sun.sun', 'next_rising')) %}
-              {% if t.timestamp() >= (sunset - 7200) %}
-                {{ (sunrise + 7200) | timestamp_custom('%Y-%m-%d %H:%M:%S', true) }}
-              {% else %}
-                {{ t.strftime('%Y-%m-%d %H:%M:%S') }}
-              {% endif %}
+              data:
+                source: schedule
+- id: mower_recover_overdue_schedules
+  alias: "Mower: recover overdue schedules"
   mode: single
-
-# ===========================================================================
-# Rain delay (optional - needs sensor.rain_today / sensor.rain_probability,
-# see template.yaml). With no rain sensors these simply never trigger.
-# ===========================================================================
-
-- id: do_not_mow_if_rain
-  alias: Do Not Mow if Rain
-  mode: restart
-  trigger:
-    - platform: time_pattern
-      minutes: "/30"
-  condition:
-    - condition: template
-      value_template: >
-        {{ states('sensor.rain_today') | float(0) > 3
-           or states('sensor.rain_probability') | float(0) > 50 }}
-  action:
-    - action: input_boolean.turn_on
-      target: { entity_id: input_boolean.do_not_mow }
-    - action: input_text.set_value
-      target: { entity_id: input_text.reason_no_mow }
-      data:
-        value: >
-          {% if states('sensor.rain_today') | float(0) > 3 %}wet ground{% else %}rain soon{% endif %}
-
-- id: reset_do_not_mow_if_dry
-  alias: Reset Do Not Mow if Dry
-  trigger:
-    - platform: time_pattern
-      minutes: "/30"
-  condition:
-    - condition: template
-      value_template: >
-        {{ states('sensor.rain_today') | float(0) <= 3
-           and states('sensor.rain_probability') | float(0) <= 50 }}
-    # Only auto-clear during the day, so the night block below isn't undone.
-    - condition: sun
-      after: sunrise
-      after_offset: "01:00:00"
-      before: sunset
-      before_offset: "-01:00:00"
-  action:
-    - action: input_boolean.turn_off
-      target: { entity_id: input_boolean.do_not_mow }
-
-# ===========================================================================
-# Night block (optional - controlled by input_boolean.block_night_mowing)
-# ===========================================================================
-
-- id: block_mowing_at_night
-  alias: Block Mowing at Night
-  trigger:
-    - platform: sun
-      event: sunset
-      offset: "-01:00:00"
-  condition:
+  triggers:
+    - trigger: homeassistant
+      event: start
+    - trigger: state
+      entity_id: input_boolean.mowing_automation_enabled
+      to: "on"
+    - trigger: time_pattern
+      minutes: /15
+    - trigger: state
+      entity_id:
+        - input_select.lawn_1_schedule
+        - input_select.lawn_2_schedule
+        - input_select.lawn_3_schedule
+  conditions:
     - condition: state
-      entity_id: input_boolean.block_night_mowing
+      entity_id: input_boolean.mowing_automation_enabled
       state: "on"
-  action:
-    - action: input_boolean.turn_on
-      target: { entity_id: input_boolean.do_not_mow }
-    - action: input_text.set_value
-      target: { entity_id: input_text.reason_no_mow }
-      data: { value: night time }
-
-- id: allow_mowing_at_sunrise
-  alias: Allow Mowing at Sunrise
-  trigger:
-    - platform: sun
-      event: sunrise
-      offset: "01:00:00"
-  condition:
-    - condition: state
-      entity_id: input_boolean.block_night_mowing
-      state: "on"
-    - condition: template
-      value_template: >
-        {{ states('sensor.rain_today') | float(0) <= 3
-           and states('sensor.rain_probability') | float(0) <= 50 }}
-  action:
-    - action: input_boolean.turn_off
-      target: { entity_id: input_boolean.do_not_mow }
+  actions:
+    - action: script.reconcile_mow_next_times
+- id: mower_task_buttons_sync
+  alias: "Mower: restore missing task buttons"
+  mode: single
+  triggers:
+    - trigger: state
+      entity_id: binary_sensor.mower_task_buttons_blocked
+      to: "on"
+  actions:
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >-
+                {{ states['button.mower_synchronize_schedules'] is not none and
+                states('button.mower_synchronize_schedules') != 'unavailable' }}
+          sequence:
+            - action: button.press
+              target:
+                entity_id: button.mower_synchronize_schedules
+              continue_on_error: true
+            - delay: "00:02:00"
+            - if:
+                - condition: state
+                  entity_id: binary_sensor.mower_task_buttons_blocked
+                  state: "on"
+              then:
+                - action: persistent_notification.create
+                  data:
+                    notification_id: mower_task_sync
+                    title: Mowing tasks still unavailable
+                    message: >-
+                      Schedule synchronization did not restore every task. Check the integration and
+                      saved-task entity names.
+      default:
+        - action: persistent_notification.create
+          data:
+            notification_id: mower_task_sync
+            title: Mowing tasks unavailable
+            message: >-
+              Task buttons and the schedule-sync button are unavailable. Check the mower connection and
+              configured entity names.

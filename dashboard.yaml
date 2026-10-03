@@ -1,34 +1,29 @@
-# Example Lovelace view for the mower scheduler.
-#
-# Uses only BUILT-IN cards (no HACS card required). Add it as a new dashboard
-# view: Settings > Dashboards > (your dashboard) > Edit > raw configuration
-# editor, then paste this under `views:`. Or paste individual cards via the UI.
-#
-# Replace the placeholder entities with yours:
-#   lawn_mower.mower            -> your mower
-#   sensor.mower_battery        -> your mower battery sensor
-#   device_tracker.mower        -> your mower GPS tracker (provided by the integration)
-#   camera.mower                -> your mower camera (Luba 2/3 with camera; optional)
-#   button.mower_lawn_1/2/3     -> your saved-task buttons (optional manual-mow buttons)
-
+# Built-in-card dashboard. Replace generic mower entities. No location history or private coordinates.
 title: Mower
 path: mower
 icon: mdi:robot-mower
 cards:
-  # ---- Controls -----------------------------------------------------------
   - type: entities
     title: Mowing Controls
     entities:
       - entity: input_boolean.mowing_automation_enabled
         name: Scheduler enabled
       - entity: input_boolean.do_not_mow
-        name: Do not mow (auto - rain/night)
+        name: Manual mowing block
       - entity: input_boolean.block_night_mowing
         name: Block night mowing
-      - entity: input_text.reason_no_mow
+      - entity: input_boolean.block_rain_mowing
+        name: Block rain mowing
+      - entity: binary_sensor.mowing_conditions_blocked
+        name: Weather/night restriction
+      - type: button
+        name: Recover overdue schedules
+        icon: mdi:calendar-refresh
+        tap_action:
+          action: perform-action
+          perform_action: script.reconcile_mow_next_times
+      - entity: sensor.mowing_block_reason
         name: Reason
-
-  # ---- Mower status -------------------------------------------------------
   - type: glance
     title: Mower
     entities:
@@ -36,24 +31,25 @@ cards:
         name: State
       - entity: sensor.mower_battery
         name: Battery
-      - entity: input_text.last_lawn_mowed
+      - entity: sensor.mower_last_lawn
         name: Last lawn
-
-  # ---- Live map (built-in map card, auto-centres on the mower) -------------
+  - type: entities
+    title: Mowing history
+    entities:
+      - entity: sensor.mowing_session_log
+        name: Recorded sessions
+      - entity: binary_sensor.mower_task_buttons_blocked
+        name: Task buttons need attention
   - type: map
     title: Mower Location
     entities:
       - device_tracker.mower
-    hours_to_show: 24
-
-  # ---- Camera (optional; remove if your model has no camera) --------------
+    hours_to_show: 0
   - type: picture-entity
     title: Mower Camera
     entity: camera.mower
     camera_view: live
     show_state: false
-
-  # ---- Per-zone schedule + manual mow -------------------------------------
   - type: entities
     title: Lawn 1
     entities:
@@ -69,7 +65,6 @@ cards:
         tap_action:
           action: perform-action
           perform_action: script.mow_lawn_1
-
   - type: entities
     title: Lawn 2
     entities:
@@ -85,7 +80,6 @@ cards:
         tap_action:
           action: perform-action
           perform_action: script.mow_lawn_2
-
   - type: entities
     title: Lawn 3
     entities:

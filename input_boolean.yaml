@@ -1,15 +1,13 @@
-# Helpers that gate the scheduler.
-# Add under   input_boolean: !include input_boolean.yaml   in configuration.yaml
-
+# Scheduler switches. do_not_mow is a manual block; computed weather/night restrictions never clear it.
 mowing_automation_enabled:
   name: Mowing Automation Enabled
   icon: mdi:robot-mower
-
 do_not_mow:
-  name: Do Not Mow
+  name: Manual Mowing Block
   icon: mdi:robot-mower-off
-  # Auto-managed by the rain/night automations. Turn on manually to pause all mowing.
-
 block_night_mowing:
   name: Block Night Mowing
   icon: mdi:weather-night
+block_rain_mowing:
+  name: Block Rain Mowing
+  icon: mdi:weather-rainy

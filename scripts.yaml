@@ -1,115 +1,181 @@
-# Mow scripts, one per zone.
-# Add under   script: !include scripts.yaml   in configuration.yaml
-#
-# IMPORTANT (2026 update): these press the mower's SAVED-TASK BUTTON for the zone
-# instead of calling mammotion.start_mow with area switches. On Mammotion-HA 0.6.x
-# each saved task/map area is exposed as a button entity (e.g. button.mower_lawn_1),
-# and pressing it runs that task using the speed/angle/blade settings you saved in
-# the Mammotion app. This is far more robust than start_mow across integration updates,
-# and it means you tune the mow (including the cutting angle) in the app, where you can
-# see it on the map.
-#
-# Replace in every script:
-#   lawn_mower.mower   -> your mower entity   (Developer Tools > States, search lawn_mower.)
-#   button.mower_<zone> -> the saved-task button for that zone (search button. )
-#                          The button name comes from the task name in the app.
-
+# Generic saved-task dispatch. Include under script:. Start history is written only after confirmation.
 mow_lawn_1:
   alias: Mow Lawn 1
   icon: mdi:robot-mower
+  mode: single
   sequence:
-    # Skip if the mower is already out.
-    - condition: template
-      value_template: "{{ states('lawn_mower.mower') not in ['mowing', 'returning'] }}"
-    # Roll the last-mow history (1 = most recent).
-    - action: input_datetime.set_datetime
-      target: { entity_id: input_datetime.lawn_1_last_mow_3 }
-      data: { datetime: "{{ states('input_datetime.lawn_1_last_mow_2') }}" }
-    - action: input_datetime.set_datetime
-      target: { entity_id: input_datetime.lawn_1_last_mow_2 }
-      data: { datetime: "{{ states('input_datetime.lawn_1_last_mow_1') }}" }
-    - action: input_datetime.set_datetime
-      target: { entity_id: input_datetime.lawn_1_last_mow_1 }
-      data: { datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}" }
-    - action: input_text.set_value
-      target: { entity_id: input_text.last_lawn_mowed }
-      data: { value: "Lawn 1" }
-    # Start the saved app task for this zone.
-    - action: button.press
-      target: { entity_id: button.mower_lawn_1 }
-    # Reschedule the next run from the chosen frequency.
-    - action: input_datetime.set_datetime
-      target: { entity_id: input_datetime.lawn_1_next_time }
+    - action: script.mow_lawn
       data:
-        datetime: >
-          {% if is_state('input_select.lawn_1_schedule', 'once per week') %}
-            {{ (now() + timedelta(days=7)).strftime('%Y-%m-%d %H:%M:%S') }}
-          {% elif is_state('input_select.lawn_1_schedule', 'twice per week') %}
-            {{ (now() + timedelta(days=3)).strftime('%Y-%m-%d %H:%M:%S') }}
-          {% else %}
-            {{ (now() + timedelta(days=365)).strftime('%Y-%m-%d %H:%M:%S') }}
-          {% endif %}
-
+        zone: lawn_1
+        source: '{{ source | default(''manual'') }}'
 mow_lawn_2:
   alias: Mow Lawn 2
   icon: mdi:robot-mower
+  mode: single
   sequence:
-    - condition: template
-      value_template: "{{ states('lawn_mower.mower') not in ['mowing', 'returning'] }}"
-    - action: input_datetime.set_datetime
-      target: { entity_id: input_datetime.lawn_2_last_mow_3 }
-      data: { datetime: "{{ states('input_datetime.lawn_2_last_mow_2') }}" }
-    - action: input_datetime.set_datetime
-      target: { entity_id: input_datetime.lawn_2_last_mow_2 }
-      data: { datetime: "{{ states('input_datetime.lawn_2_last_mow_1') }}" }
-    - action: input_datetime.set_datetime
-      target: { entity_id: input_datetime.lawn_2_last_mow_1 }
-      data: { datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}" }
-    - action: input_text.set_value
-      target: { entity_id: input_text.last_lawn_mowed }
-      data: { value: "Lawn 2" }
-    - action: button.press
-      target: { entity_id: button.mower_lawn_2 }
-    - action: input_datetime.set_datetime
-      target: { entity_id: input_datetime.lawn_2_next_time }
+    - action: script.mow_lawn
       data:
-        datetime: >
-          {% if is_state('input_select.lawn_2_schedule', 'once per week') %}
-            {{ (now() + timedelta(days=7)).strftime('%Y-%m-%d %H:%M:%S') }}
-          {% elif is_state('input_select.lawn_2_schedule', 'twice per week') %}
-            {{ (now() + timedelta(days=3)).strftime('%Y-%m-%d %H:%M:%S') }}
-          {% else %}
-            {{ (now() + timedelta(days=365)).strftime('%Y-%m-%d %H:%M:%S') }}
-          {% endif %}
-
+        zone: lawn_2
+        source: '{{ source | default(''manual'') }}'
 mow_lawn_3:
   alias: Mow Lawn 3
   icon: mdi:robot-mower
+  mode: single
+  sequence:
+    - action: script.mow_lawn
+      data:
+        zone: lawn_3
+        source: '{{ source | default(''manual'') }}'
+mow_lawn:
+  alias: Mow a saved lawn task
+  icon: mdi:robot-mower
+  mode: single
+  max_exceeded: silent
+  fields:
+    zone:
+      required: true
+      selector:
+        select:
+          options:
+            - lawn_1
+            - lawn_2
+            - lawn_3
+    source:
+      default: manual
+      selector:
+        select:
+          options:
+            - manual
+            - schedule
   sequence:
     - condition: template
-      value_template: "{{ states('lawn_mower.mower') not in ['mowing', 'returning'] }}"
-    - action: input_datetime.set_datetime
-      target: { entity_id: input_datetime.lawn_3_last_mow_3 }
-      data: { datetime: "{{ states('input_datetime.lawn_3_last_mow_2') }}" }
-    - action: input_datetime.set_datetime
-      target: { entity_id: input_datetime.lawn_3_last_mow_2 }
-      data: { datetime: "{{ states('input_datetime.lawn_3_last_mow_1') }}" }
-    - action: input_datetime.set_datetime
-      target: { entity_id: input_datetime.lawn_3_last_mow_1 }
-      data: { datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}" }
+      value_template: '{{ zone in [''lawn_1'', ''lawn_2'', ''lawn_3''] }}'
+    - variables:
+        task_button: >-
+          {{
+          {'lawn_1':'button.mower_lawn_1','lawn_2':'button.mower_lawn_2','lawn_3':'button.mower_lawn_3'}[zone]
+          }}
+        lawn: '{{ {''lawn_1'':''Lawn 1'',''lawn_2'':''Lawn 2'',''lawn_3'':''Lawn 3''}[zone] }}'
+    - condition: template
+      value_template: '{{ states(''lawn_mower.mower'') in [''docked'', ''idle''] }}'
+    - condition: state
+      entity_id: input_boolean.do_not_mow
+      state: 'off'
+    - condition: state
+      entity_id: binary_sensor.mowing_conditions_blocked
+      state: 'off'
+    - if:
+        - condition: template
+          value_template: '{{ states[task_button] is none or states(task_button) == ''unavailable'' }}'
+      then:
+        - action: persistent_notification.create
+          data:
+            notification_id: mower_task_unavailable
+            title: Mowing task unavailable
+            message: >-
+              {{ lawn }}: saved-task button is missing or unavailable. Synchronize schedules in the Mammotion
+              integration and check the task entity name.
+        - stop: Saved task is unavailable; no start recorded
     - action: input_text.set_value
-      target: { entity_id: input_text.last_lawn_mowed }
-      data: { value: "Lawn 3" }
-    - action: button.press
-      target: { entity_id: button.mower_lawn_3 }
-    - action: input_datetime.set_datetime
-      target: { entity_id: input_datetime.lawn_3_next_time }
+      target:
+        entity_id: input_text.mow_request
       data:
-        datetime: >
-          {% if is_state('input_select.lawn_3_schedule', 'once per week') %}
-            {{ (now() + timedelta(days=7)).strftime('%Y-%m-%d %H:%M:%S') }}
-          {% elif is_state('input_select.lawn_3_schedule', 'twice per week') %}
-            {{ (now() + timedelta(days=3)).strftime('%Y-%m-%d %H:%M:%S') }}
-          {% else %}
-            {{ (now() + timedelta(days=365)).strftime('%Y-%m-%d %H:%M:%S') }}
-          {% endif %}
+        value: '{{ lawn }}|{{ source | default(''manual'') }}|{{ now().isoformat() }}'
+    - action: button.press
+      target:
+        entity_id: '{{ task_button }}'
+      continue_on_error: true
+    - wait_template: '{{ is_state(''lawn_mower.mower'', ''mowing'') }}'
+      timeout: '00:06:00'
+      continue_on_timeout: true
+    - if:
+        - condition: template
+          value_template: '{{ not wait.completed }}'
+      then:
+        - action: input_text.set_value
+          target:
+            entity_id: input_text.mow_request
+          data:
+            value: ''
+        - action: persistent_notification.create
+          data:
+            notification_id: mower_start_unconfirmed
+            title: Mowing did not start
+            message: >-
+              {{ lawn }} did not reach mowing state within six minutes. Last-mow history was not changed.
+              Enabled schedules retry later.
+        - stop: Mow start was not confirmed
+    - if:
+        - condition: template
+          value_template: '{{ as_timestamp(states(''input_datetime.'' ~ zone ~ ''_last_mow_2''), 0) > 0 }}'
+      then:
+        - action: input_datetime.set_datetime
+          target:
+            entity_id: '{{ ''input_datetime.'' ~ zone ~ ''_last_mow_3'' }}'
+          data:
+            datetime: '{{ states(''input_datetime.'' ~ zone ~ ''_last_mow_2'') }}'
+    - if:
+        - condition: template
+          value_template: '{{ as_timestamp(states(''input_datetime.'' ~ zone ~ ''_last_mow_1''), 0) > 0 }}'
+      then:
+        - action: input_datetime.set_datetime
+          target:
+            entity_id: '{{ ''input_datetime.'' ~ zone ~ ''_last_mow_2'' }}'
+          data:
+            datetime: '{{ states(''input_datetime.'' ~ zone ~ ''_last_mow_1'') }}'
+    - action: input_datetime.set_datetime
+      target:
+        entity_id: '{{ ''input_datetime.'' ~ zone ~ ''_last_mow_1'' }}'
+      data:
+        datetime: '{{ now().strftime(''%Y-%m-%d %H:%M:%S'') }}'
+    - action: input_text.set_value
+      target:
+        entity_id: input_text.last_lawn_mowed
+      data:
+        value: '{{ lawn }}'
+    - if:
+        - condition: template
+          value_template: '{{ states(''input_select.'' ~ zone ~ ''_schedule'') in [''once per week'',''twice per week''] }}'
+      then:
+        - action: input_datetime.set_datetime
+          target:
+            entity_id: '{{ ''input_datetime.'' ~ zone ~ ''_next_time'' }}'
+          data:
+            datetime: >-
+              {% set days = 7 if is_state('input_select.' ~ zone ~ '_schedule','once per week') else 3 %}{{
+              (now() + timedelta(days=days)).strftime('%Y-%m-%d %H:%M:%S') }}
+    - action: input_text.set_value
+      target:
+        entity_id: input_text.mow_request
+      data:
+        value: ''
+reconcile_mow_next_times:
+  alias: Recover overdue mowing schedules
+  icon: mdi:calendar-refresh
+  mode: single
+  sequence:
+    - condition: state
+      entity_id: input_boolean.mowing_automation_enabled
+      state: 'on'
+    - repeat:
+        for_each:
+          - lawn_1
+          - lawn_2
+          - lawn_3
+        sequence:
+          - variables:
+              next_entity: '{{ ''input_datetime.'' ~ repeat.item ~ ''_next_time'' }}'
+              schedule: '{{ states(''input_select.'' ~ repeat.item ~ ''_schedule'') }}'
+          - if:
+              - condition: template
+                value_template: >-
+                  {{ schedule in ['once per week', 'twice per week'] and as_timestamp(states(next_entity), 0)
+                  <= now().timestamp() }}
+            then:
+              - action: input_datetime.set_datetime
+                target:
+                  entity_id: '{{ next_entity }}'
+                data:
+                  datetime: >-
+                    {{ (now() + timedelta(minutes=10 + (repeat.index - 1) * 10)).strftime('%Y-%m-%d %H:%M:%S')
+                    }}

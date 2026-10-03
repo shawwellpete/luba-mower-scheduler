@@ -1,0 +1,682 @@
+# Optional dashboard: Mushroom, button-card, card-mod, Browser Mod, map-card and Mammotion map assets required.
+# Generic examples only. Replace entity names; maps centre on the tracker without saved home coordinates.
+title: Mowers
+path: mowers
+icon: mdi:robot-mower
+cards:
+  - type: entities
+    title: Mowing Controls
+    entities:
+      - entity: input_boolean.mowing_automation_enabled
+        name: Scheduler enabled
+      - entity: input_boolean.do_not_mow
+        name: Manual mowing block
+      - entity: input_boolean.block_night_mowing
+        name: Block night mowing
+      - entity: input_boolean.block_rain_mowing
+        name: Block rain mowing
+      - entity: binary_sensor.mowing_conditions_blocked
+        name: Weather/night restriction
+      - type: button
+        name: Recover overdue schedules
+        icon: mdi:calendar-refresh
+        tap_action:
+          action: perform-action
+          perform_action: script.reconcile_mow_next_times
+      - entity: sensor.mowing_block_reason
+        name: Reason
+  - type: custom:mushroom-template-card
+    primary: Mowing history
+    secondary: >-
+      Mower · {{ states('sensor.mower_last_lawn') }}{% set since =
+      state_attr('sensor.mower_last_lawn','since') %}{{ ' · ' ~ since ~ ' ago' if since and since not in
+      ['unknown','unavailable'] else '' }}
+
+      Mower 2 · {{ states('sensor.mower_2_last_lawn') }}{% set since =
+      state_attr('sensor.mower_2_last_lawn','since') %}{{ ' · ' ~ since ~ ' ago' if since and since not in
+      ['unknown','unavailable'] else '' }}
+    multiline_secondary: true
+    icon: mdi:history
+    icon_color: grey
+    card_mod:
+      style: 'ha-card { min-height: 104px; --card-primary-font-size: 16px; --card-secondary-line-height: 22px; }'
+    tap_action:
+      action: fire-dom-event
+      browser_mod:
+        service: browser_mod.popup
+        data:
+          title: Mowing history
+          dismissable: true
+          style: |
+            --popup-max-width: 560px;
+          right_button: Close
+          right_button_action:
+            service: browser_mod.close_popup
+          content:
+            type: vertical-stack
+            cards:
+              - type: custom:button-card
+                entity: sensor.mowing_session_log
+                triggers_update:
+                  - sensor.mowing_session_log_2
+                show_icon: false
+                show_name: false
+                show_state: false
+                tap_action:
+                  action: none
+                hold_action:
+                  action: none
+                double_tap_action:
+                  action: none
+                styles:
+                  card:
+                    - padding: 18px 16px
+                    - cursor: default
+                  grid:
+                    - grid-template-areas: '"content"'
+                    - grid-template-columns: minmax(0, 1fr)
+                    - grid-template-rows: auto
+                  custom_fields:
+                    content:
+                      - text-align: left
+                      - white-space: normal
+                      - width: 100%
+                      - min-width: '0'
+                custom_fields:
+                  content: >-
+                    [[[
+
+
+                    const sessions = ['sensor.mowing_session_log','sensor.mowing_session_log_2'].flatMap(id =>
+                    { const data = states[id]?.attributes?.sessions; return Array.isArray(data) ? data : [];
+                    });
+
+                    const esc = v => String(v ?? '').replace(/[&<>"']/g, c =>
+                    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+                    const stamp = s => Date.parse(s.end) || 0;
+
+                    const date = ts => new Intl.DateTimeFormat('en-GB', {timeZone:hass.config.time_zone,
+                    day:'numeric',month:'short'}).format(ts);
+
+                    const time = ts => new Intl.DateTimeFormat('en-GB', {timeZone:hass.config.time_zone,
+                    hour:'2-digit',minute:'2-digit'}).format(ts);
+
+                    const duration = d => {d = Math.max(0, Math.floor(Number(d) || 0)); return d < 60 ? d +
+                    'm' : Math.floor(d/60) + 'h' + (d%60 ? ' ' + d%60 + 'm' : '');};
+
+                    const status = s =>
+                    ({completed:['complete','Complete'],partial:['partial','Partial'],error:['error','Error'],cancelled:['stopped','Cancelled'],canceled:['stopped','Cancelled'],aborted:['stopped','Stopped']})[s]
+                    || ['stopped','Stopped'];
+
+                    const lawnName = name => name === 'Unknown' ? 'Unassigned' : String(name ||
+                    'Unassigned').replace(/\b(Grass|Lawn)\b/g, s => s.toLowerCase());
+
+                    const week = Date.now() - 7*86400000;
+
+
+                    const recent = sessions.filter(s => stamp(s) > week).sort((a,b) => stamp(b)-stamp(a));
+
+                    const minutes = recent.reduce((n,s) => n + (Number(s.duration_min) || 0),0);
+
+                    const complete = recent.filter(s => s.outcome === 'completed').length;
+
+                    const header = '<div class="heading"><h2>Recent mows</h2><span>Last 7 days</span></div>';
+
+                    if (!recent.length) return header + '<p class="empty">' + (sessions.length ? 'No mows in
+                    the last 7 days.' : 'No sessions recorded yet.') + '</p>';
+
+                    const summary = '<div class="summary"><span><strong>' + recent.length + '</strong>
+                    sessions</span><span><strong>' + duration(minutes) + '</strong>
+                    session time</span><span><strong>' + complete + '/' + recent.length + '</strong>
+                    complete</span></div>';
+
+                    const rows = recent.slice(0,12).map(s => {
+                     const [kind,label] = status(s.outcome);
+                     const source = ({schedule:'Scheduled',manual:'Manual',app:'App'})[s.source] || esc(s.source || '');
+                     const mower = String(s.mower || '').replace(/^./, c => c.toUpperCase());
+                     const progress = Math.max(0,Math.min(100,Math.floor(Number(s.progress_end)||0)));
+                     return '<div class="mow-row"><div class="mow-main"><div class="lawn">' + esc(lawnName(s.lawn)) + '</div><div class="meta">' + esc(mower) + ' · ' + date(stamp(s)) + ', ' + time(stamp(s)) + (source ? ' · ' + source : '') + '</div></div><div class="result"><div class="status ' + kind + '">' + label + '</div><div class="meta">' + duration(s.duration_min) + ' · ' + progress + '%</div></div></div>';
+                    }).join('');
+
+                    return header + summary + '<div class="mow-list">' + rows + '</div>' + (recent.length > 12
+                    ? '<p class="footnote">Latest 12 of ' + recent.length + ' sessions. See full history
+                    below.</p>' : '');
+
+
+                    ]]]
+                extra_styles: >
+
+                  .heading
+                  {display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:16px;}
+
+                  h2 {font-size:17px;font-weight:600;line-height:1.4;margin:0;letter-spacing:0;}
+
+                  .heading>span,.meta,.footnote,thead th {color:var(--secondary-text-color);font-size:12px;}
+
+                  .summary {display:flex;flex-wrap:wrap;gap:6px
+                  18px;font-size:12px;color:var(--secondary-text-color);padding:0 0 16px;}
+
+                  .summary strong
+                  {font-weight:500;color:var(--primary-text-color);font-variant-numeric:tabular-nums;}
+
+                  .mow-row
+                  {display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px
+                  0;border-top:1px solid var(--divider-color);}
+
+                  .mow-row:last-child {padding-bottom:0;}
+
+                  .mow-main {min-width:0;}
+
+                  .lawn {font-size:14px;font-weight:500;line-height:1.5;}
+
+                  .meta {line-height:1.6;margin-top:2px;white-space:normal;}
+
+                  .result {flex-shrink:0;text-align:right;font-variant-numeric:tabular-nums;}
+
+                  .status {font-size:12px;line-height:1.75;}
+
+                  .complete {color:var(--success-color,#81a98b);}
+
+                  .partial {color:var(--warning-color,#c6a96b);}
+
+                  .error {color:var(--error-color,#cc8686);}
+
+                  .stopped {color:var(--secondary-text-color);}
+
+                  table
+                  {width:100%;border-collapse:collapse;table-layout:auto;font-size:13px;font-variant-numeric:tabular-nums;}
+
+                  thead th {font-weight:400;padding:0 5px 10px;text-align:right;}
+
+                  thead th:first-child,tbody th {text-align:left;padding-left:0;}
+
+                  thead th:last-child,tbody td:last-child {padding-right:0;}
+
+                  tbody th,tbody td {border-top:1px solid var(--divider-color);padding:11px 5px;}
+
+                  tbody th {font-weight:500;font-size:13px;}
+
+                  tbody td {text-align:right;white-space:nowrap;}
+
+                  .last-status {display:block;font-size:11px;line-height:1.5;}
+
+                  .footnote {font-size:11px;line-height:1.5;margin:14px 0 0;white-space:normal;}
+
+                  .empty {font-size:13px;color:var(--secondary-text-color);white-space:normal;}
+              - type: custom:button-card
+                entity: sensor.mowing_session_log
+                triggers_update:
+                  - sensor.mowing_session_log_2
+                show_icon: false
+                show_name: false
+                show_state: false
+                tap_action:
+                  action: none
+                hold_action:
+                  action: none
+                double_tap_action:
+                  action: none
+                styles:
+                  card:
+                    - padding: 18px 16px
+                    - cursor: default
+                  grid:
+                    - grid-template-areas: '"content"'
+                    - grid-template-columns: minmax(0, 1fr)
+                    - grid-template-rows: auto
+                  custom_fields:
+                    content:
+                      - text-align: left
+                      - white-space: normal
+                      - width: 100%
+                      - min-width: '0'
+                custom_fields:
+                  content: >-
+                    [[[
+
+
+                    const sessions = ['sensor.mowing_session_log','sensor.mowing_session_log_2'].flatMap(id =>
+                    { const data = states[id]?.attributes?.sessions; return Array.isArray(data) ? data : [];
+                    });
+
+                    const esc = v => String(v ?? '').replace(/[&<>"']/g, c =>
+                    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+                    const stamp = s => Date.parse(s.end) || 0;
+
+                    const date = ts => new Intl.DateTimeFormat('en-GB', {timeZone:hass.config.time_zone,
+                    day:'numeric',month:'short'}).format(ts);
+
+                    const time = ts => new Intl.DateTimeFormat('en-GB', {timeZone:hass.config.time_zone,
+                    hour:'2-digit',minute:'2-digit'}).format(ts);
+
+                    const duration = d => {d = Math.max(0, Math.floor(Number(d) || 0)); return d < 60 ? d +
+                    'm' : Math.floor(d/60) + 'h' + (d%60 ? ' ' + d%60 + 'm' : '');};
+
+                    const status = s =>
+                    ({completed:['complete','Complete'],partial:['partial','Partial'],error:['error','Error'],cancelled:['stopped','Cancelled'],canceled:['stopped','Cancelled'],aborted:['stopped','Stopped']})[s]
+                    || ['stopped','Stopped'];
+
+                    const lawnName = name => name === 'Unknown' ? 'Unassigned' : String(name ||
+                    'Unassigned').replace(/\b(Grass|Lawn)\b/g, s => s.toLowerCase());
+
+                    const week = Date.now() - 7*86400000;
+
+
+                    const month = Date.now() - 30*86400000;
+
+                    const lawns = [...new Set(['Lawn 1','Lawn 2','Lawn 3', ...sessions.map(s => s.lawn ||
+                    'Unknown')].map(s => s.trim().toLowerCase()))].map(s => s === 'unknown' ? 'Unknown' :
+                    s.replace(/^./, c => c.toUpperCase()));
+
+                    const rows = lawns.map(lawn => {
+                     const items = sessions.filter(s => String(s.lawn || 'Unknown').trim().toLowerCase() === lawn.toLowerCase()).sort((a,b) => stamp(b)-stamp(a));
+                     const last = items[0];
+                     const average = items.length ? Math.floor(items.reduce((n,s)=>n+(Number(s.duration_min)||0),0)/items.length) : null;
+                     const [kind,label] = last ? status(last.outcome) : ['stopped','No sessions'];
+                     return '<tr><th scope="row">' + esc(lawnName(lawn)) + '</th><td>' + items.filter(s=>stamp(s)>week).length + '</td><td>' + items.filter(s=>stamp(s)>month).length + '</td><td>' + (average === null ? '—' : duration(average)) + '</td><td class="last">' + (last ? date(stamp(last)) + '<span class="last-status ' + kind + '">' + label + '</span>' : '—') + '</td></tr>';
+                    }).join('');
+
+                    return '<div class="heading"><h2>By lawn</h2></div><table aria-label="Mowing sessions by
+                    lawn"><thead><tr><th scope="col">Lawn</th><th scope="col">7d</th><th
+                    scope="col">30d</th><th scope="col">Avg</th><th
+                    scope="col">Latest</th></tr></thead><tbody>' + rows + '</tbody></table><p
+                    class="footnote">Recorded sessions · average across available history</p>';
+
+
+                    ]]]
+                extra_styles: >
+
+                  .heading
+                  {display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:16px;}
+
+                  h2 {font-size:17px;font-weight:600;line-height:1.4;margin:0;letter-spacing:0;}
+
+                  .heading>span,.meta,.footnote,thead th {color:var(--secondary-text-color);font-size:12px;}
+
+                  .summary {display:flex;flex-wrap:wrap;gap:6px
+                  18px;font-size:12px;color:var(--secondary-text-color);padding:0 0 16px;}
+
+                  .summary strong
+                  {font-weight:500;color:var(--primary-text-color);font-variant-numeric:tabular-nums;}
+
+                  .mow-row
+                  {display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px
+                  0;border-top:1px solid var(--divider-color);}
+
+                  .mow-row:last-child {padding-bottom:0;}
+
+                  .mow-main {min-width:0;}
+
+                  .lawn {font-size:14px;font-weight:500;line-height:1.5;}
+
+                  .meta {line-height:1.6;margin-top:2px;white-space:normal;}
+
+                  .result {flex-shrink:0;text-align:right;font-variant-numeric:tabular-nums;}
+
+                  .status {font-size:12px;line-height:1.75;}
+
+                  .complete {color:var(--success-color,#81a98b);}
+
+                  .partial {color:var(--warning-color,#c6a96b);}
+
+                  .error {color:var(--error-color,#cc8686);}
+
+                  .stopped {color:var(--secondary-text-color);}
+
+                  table
+                  {width:100%;border-collapse:collapse;table-layout:auto;font-size:13px;font-variant-numeric:tabular-nums;}
+
+                  thead th {font-weight:400;padding:0 5px 10px;text-align:right;}
+
+                  thead th:first-child,tbody th {text-align:left;padding-left:0;}
+
+                  thead th:last-child,tbody td:last-child {padding-right:0;}
+
+                  tbody th,tbody td {border-top:1px solid var(--divider-color);padding:11px 5px;}
+
+                  tbody th {font-weight:500;font-size:13px;}
+
+                  tbody td {text-align:right;white-space:nowrap;}
+
+                  .last-status {display:block;font-size:11px;line-height:1.5;}
+
+                  .footnote {font-size:11px;line-height:1.5;margin:14px 0 0;white-space:normal;}
+
+                  .empty {font-size:13px;color:var(--secondary-text-color);white-space:normal;}
+              - type: custom:mushroom-template-card
+                primary: Full session history
+                secondary: All recorded sessions and error details
+                icon: mdi:history
+                icon_color: grey
+                tap_action:
+                  action: fire-dom-event
+                  browser_mod:
+                    service: browser_mod.popup
+                    data:
+                      title: Session history
+                      dismissable: true
+                      style: |
+                        --popup-max-width: 560px;
+                      content:
+                        type: custom:button-card
+                        entity: sensor.mowing_session_log
+                        triggers_update:
+                          - sensor.mowing_session_log_2
+                        show_icon: false
+                        show_name: false
+                        show_state: false
+                        tap_action:
+                          action: none
+                        hold_action:
+                          action: none
+                        double_tap_action:
+                          action: none
+                        styles:
+                          card:
+                            - padding: 18px 16px
+                            - cursor: default
+                          grid:
+                            - grid-template-areas: '"content"'
+                            - grid-template-columns: minmax(0, 1fr)
+                            - grid-template-rows: auto
+                          custom_fields:
+                            content:
+                              - text-align: left
+                              - white-space: normal
+                              - width: 100%
+                              - min-width: '0'
+                        custom_fields:
+                          content: >-
+                            [[[
+
+
+                            const sessions =
+                            ['sensor.mowing_session_log','sensor.mowing_session_log_2'].flatMap(id => { const
+                            data = states[id]?.attributes?.sessions; return Array.isArray(data) ? data : [];
+                            });
+
+                            const esc = v => String(v ?? '').replace(/[&<>"']/g, c =>
+                            ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+                            const stamp = s => Date.parse(s.end) || 0;
+
+                            const date = ts => new Intl.DateTimeFormat('en-GB',
+                            {timeZone:hass.config.time_zone, day:'numeric',month:'short'}).format(ts);
+
+                            const time = ts => new Intl.DateTimeFormat('en-GB',
+                            {timeZone:hass.config.time_zone, hour:'2-digit',minute:'2-digit'}).format(ts);
+
+                            const duration = d => {d = Math.max(0, Math.floor(Number(d) || 0)); return d < 60
+                            ? d + 'm' : Math.floor(d/60) + 'h' + (d%60 ? ' ' + d%60 + 'm' : '');};
+
+                            const status = s =>
+                            ({completed:['complete','Complete'],partial:['partial','Partial'],error:['error','Error'],cancelled:['stopped','Cancelled'],canceled:['stopped','Cancelled'],aborted:['stopped','Stopped']})[s]
+                            || ['stopped','Stopped'];
+
+                            const lawnName = name => name === 'Unknown' ? 'Unassigned' : String(name ||
+                            'Unassigned').replace(/\b(Grass|Lawn)\b/g, s => s.toLowerCase());
+
+                            const week = Date.now() - 7*86400000;
+
+
+                            const recent = sessions.filter(s => stamp(s) > 0).sort((a,b) =>
+                            stamp(b)-stamp(a));
+
+                            const minutes = recent.reduce((n,s) => n + (Number(s.duration_min) || 0),0);
+
+                            const complete = recent.filter(s => s.outcome === 'completed').length;
+
+                            const header = '<div class="heading"><h2>Session history</h2><span>Available
+                            records</span></div>';
+
+                            if (!recent.length) return header + '<p class="empty">' + (sessions.length ? 'No
+                            mows in the last 7 days.' : 'No sessions recorded yet.') + '</p>';
+
+                            const summary = '<div class="summary"><span><strong>' + recent.length + '</strong>
+                            sessions</span><span><strong>' + duration(minutes) + '</strong>
+                            session time</span><span><strong>' + complete + '/' + recent.length + '</strong>
+                            complete</span></div>';
+
+                            const rows = recent.slice(0,80).map(s => {
+                             const [kind,label] = status(s.outcome);
+                             const source = ({schedule:'Scheduled',manual:'Manual',app:'App'})[s.source] || esc(s.source || '');
+                             const mower = String(s.mower || '').replace(/^./, c => c.toUpperCase());
+                             const progress = Math.max(0,Math.min(100,Math.floor(Number(s.progress_end)||0)));
+                             return '<div class="mow-row"><div class="mow-main"><div class="lawn">' + esc(lawnName(s.lawn)) + '</div><div class="meta">' + esc(mower) + ' · ' + date(stamp(s)) + ', ' + time(stamp(s)) + (source ? ' · ' + source : '') + (s.error_code ? ' · Error ' + esc(s.error_code) : '') + '</div></div><div class="result"><div class="status ' + kind + '">' + label + '</div><div class="meta">' + duration(s.duration_min) + ' · ' + progress + '%</div></div></div>';
+                            }).join('');
+
+                            return header + summary + '<div class="mow-list">' + rows + '</div>' +
+                            (recent.length > 80 ? '<p class="footnote">Latest 80 of ' + recent.length + '
+                            sessions. See full history below.</p>' : '');
+
+
+                            ]]]
+                        extra_styles: >
+
+                          .heading
+                          {display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:16px;}
+
+                          h2 {font-size:17px;font-weight:600;line-height:1.4;margin:0;letter-spacing:0;}
+
+                          .heading>span,.meta,.footnote,thead th
+                          {color:var(--secondary-text-color);font-size:12px;}
+
+                          .summary {display:flex;flex-wrap:wrap;gap:6px
+                          18px;font-size:12px;color:var(--secondary-text-color);padding:0 0 16px;}
+
+                          .summary strong
+                          {font-weight:500;color:var(--primary-text-color);font-variant-numeric:tabular-nums;}
+
+                          .mow-row
+                          {display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px
+                          0;border-top:1px solid var(--divider-color);}
+
+                          .mow-row:last-child {padding-bottom:0;}
+
+                          .mow-main {min-width:0;}
+
+                          .lawn {font-size:14px;font-weight:500;line-height:1.5;}
+
+                          .meta {line-height:1.6;margin-top:2px;white-space:normal;}
+
+                          .result {flex-shrink:0;text-align:right;font-variant-numeric:tabular-nums;}
+
+                          .status {font-size:12px;line-height:1.75;}
+
+                          .complete {color:var(--success-color,#81a98b);}
+
+                          .partial {color:var(--warning-color,#c6a96b);}
+
+                          .error {color:var(--error-color,#cc8686);}
+
+                          .stopped {color:var(--secondary-text-color);}
+
+                          table
+                          {width:100%;border-collapse:collapse;table-layout:auto;font-size:13px;font-variant-numeric:tabular-nums;}
+
+                          thead th {font-weight:400;padding:0 5px 10px;text-align:right;}
+
+                          thead th:first-child,tbody th {text-align:left;padding-left:0;}
+
+                          thead th:last-child,tbody td:last-child {padding-right:0;}
+
+                          tbody th,tbody td {border-top:1px solid var(--divider-color);padding:11px 5px;}
+
+                          tbody th {font-weight:500;font-size:13px;}
+
+                          tbody td {text-align:right;white-space:nowrap;}
+
+                          .last-status {display:block;font-size:11px;line-height:1.5;}
+
+                          .footnote {font-size:11px;line-height:1.5;margin:14px 0 0;white-space:normal;}
+
+                          .empty {font-size:13px;color:var(--secondary-text-color);white-space:normal;}
+  - type: grid
+    columns: 2
+    square: false
+    cards:
+      - type: vertical-stack
+        cards:
+          - type: custom:mushroom-template-card
+            entity: lawn_mower.mower
+            primary: Mower · {{ states('lawn_mower.mower') | title }}
+            secondary: >-
+              {% if is_state('lawn_mower.mower','mowing') %}{{ states('sensor.mower_progress') }}% · {{
+              states('sensor.mower_elapsed_time') }} min elapsed
+
+              {% else %}Last: {{ states('sensor.mower_last_lawn') }}{% endif %}
+
+              {% set err = states('sensor.mower_last_error') %}{% if err | lower not in
+              ['ok','none','unknown','unavailable',''] and states('lawn_mower.mower') not in
+              ['mowing','docked','returning'] %}{{ err }}{% endif %}
+            multiline_secondary: true
+            icon: mdi:robot-mower
+            icon_color: '{{ ''green'' if is_state(''lawn_mower.mower'',''mowing'') else ''grey'' }}'
+            tap_action:
+              action: more-info
+            card_mod:
+              style: >-
+                ha-card { height: 112px; min-height: 112px; max-height: 112px; box-sizing: border-box;
+                overflow-y: auto; overflow-x: hidden; }
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
+                entity: sensor.mower_battery
+                icon: mdi:battery
+              - type: action
+                icon: mdi:pause
+                tap_action:
+                  action: call-service
+                  service: lawn_mower.pause
+                  target:
+                    entity_id: lawn_mower.mower
+              - type: action
+                icon: mdi:home-import-outline
+                tap_action:
+                  action: call-service
+                  service: lawn_mower.dock
+                  target:
+                    entity_id: lawn_mower.mower
+          - type: custom:map-card
+            focus_entity: device_tracker.mower
+            zoom: 19
+            card_size: 12
+            plugins:
+              - name: geoJson
+                url: /local/community/ha-mammotion-assets/dist/geojson.js
+                options:
+                  entity_id: lawn_mower.mower
+            entities:
+              - entity: device_tracker.mower
+                display: marker
+                size: 20
+                history_show_lines: false
+                history_show_dots: false
+            card_mod:
+              style: '.geojson-text-label, .geojson-label-text { display: none !important; }'
+      - type: vertical-stack
+        cards:
+          - type: custom:mushroom-template-card
+            entity: lawn_mower.mower_2
+            primary: Mower 2 · {{ states('lawn_mower.mower_2') | title }}
+            secondary: >-
+              {% if is_state('lawn_mower.mower_2','mowing') %}{{ states('sensor.mower_2_progress') }}% · {{
+              states('sensor.mower_2_elapsed_time') }} min elapsed
+
+              {% else %}Last: {{ states('sensor.mower_2_last_lawn') }}{% endif %}
+
+              {% set err = states('sensor.mower_2_last_error') %}{% if err | lower not in
+              ['ok','none','unknown','unavailable',''] and states('lawn_mower.mower_2') not in
+              ['mowing','docked','returning'] %}{{ err }}{% endif %}
+            multiline_secondary: true
+            icon: mdi:robot-mower
+            icon_color: '{{ ''green'' if is_state(''lawn_mower.mower_2'',''mowing'') else ''grey'' }}'
+            tap_action:
+              action: more-info
+            card_mod:
+              style: >-
+                ha-card { height: 112px; min-height: 112px; max-height: 112px; box-sizing: border-box;
+                overflow-y: auto; overflow-x: hidden; }
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
+                entity: sensor.mower_2_battery
+                icon: mdi:battery
+              - type: action
+                icon: mdi:pause
+                tap_action:
+                  action: call-service
+                  service: lawn_mower.pause
+                  target:
+                    entity_id: lawn_mower.mower_2
+              - type: action
+                icon: mdi:home-import-outline
+                tap_action:
+                  action: call-service
+                  service: lawn_mower.dock
+                  target:
+                    entity_id: lawn_mower.mower_2
+          - type: custom:map-card
+            focus_entity: device_tracker.mower_2
+            zoom: 19
+            card_size: 12
+            plugins:
+              - name: geoJson
+                url: /local/community/ha-mammotion-assets/dist/geojson.js
+                options:
+                  entity_id: lawn_mower.mower_2
+            entities:
+              - entity: device_tracker.mower_2
+                display: marker
+                size: 20
+                history_show_lines: false
+                history_show_dots: false
+            card_mod:
+              style: '.geojson-text-label, .geojson-label-text { display: none !important; }'
+  - type: entities
+    title: Lawn 1
+    entities:
+      - entity: input_select.lawn_1_schedule
+        name: Frequency
+      - entity: input_datetime.lawn_1_next_time
+        name: Next mow
+      - entity: sensor.lawn_1_days_since_mow
+        name: Days since mow
+      - type: button
+        name: Mow Lawn 1 now
+        icon: mdi:robot-mower
+        tap_action:
+          action: perform-action
+          perform_action: script.mow_lawn_1
+  - type: entities
+    title: Lawn 2
+    entities:
+      - entity: input_select.lawn_2_schedule
+        name: Frequency
+      - entity: input_datetime.lawn_2_next_time
+        name: Next mow
+      - entity: sensor.lawn_2_days_since_mow
+        name: Days since mow
+      - type: button
+        name: Mow Lawn 2 now
+        icon: mdi:robot-mower
+        tap_action:
+          action: perform-action
+          perform_action: script.mow_lawn_2
+  - type: entities
+    title: Lawn 3
+    entities:
+      - entity: input_select.lawn_3_schedule
+        name: Frequency
+      - entity: input_datetime.lawn_3_next_time
+        name: Next mow
+      - entity: sensor.lawn_3_days_since_mow
+        name: Days since mow
+      - type: button
+        name: Mow Lawn 3 now
+        icon: mdi:robot-mower
+        tap_action:
+          action: perform-action
+          perform_action: script.mow_lawn_3

@@ -1,48 +1,233 @@
-# Template sensors.
-# Add under   template: !include template.yaml   in configuration.yaml
-# (This file is a LIST, matching the modern `template:` integration format.)
-
-# "Days since last mow" per zone, derived from the <lawn>_last_mow_1 helper.
+# Generic sensor definitions and rolling sessions; no live records are stored in this repository.
 - sensor:
-    - name: "Lawn 1 Days Since Mow"
+    - name: Lawn 1 Days Since Mow
       unique_id: lawn_1_days_since_mow
-      unit_of_measurement: "d"
+      unit_of_measurement: d
       icon: mdi:calendar-check
       state: >
-        {% set ts = state_attr('input_datetime.lawn_1_last_mow_1', 'timestamp') %}
-        {% if ts %}{{ ((now().timestamp() - ts) / 86400) | round(0) | int }}{% else %}unknown{% endif %}
-
-    - name: "Lawn 2 Days Since Mow"
+        {% set ts = state_attr('input_datetime.lawn_1_last_mow_1', 'timestamp') %} {% if ts %}{{
+        ((now().timestamp() - ts) / 86400) | round(0) | int }}{% else %}unknown{% endif %}
+    - name: Lawn 2 Days Since Mow
       unique_id: lawn_2_days_since_mow
-      unit_of_measurement: "d"
+      unit_of_measurement: d
       icon: mdi:calendar-check
       state: >
-        {% set ts = state_attr('input_datetime.lawn_2_last_mow_1', 'timestamp') %}
-        {% if ts %}{{ ((now().timestamp() - ts) / 86400) | round(0) | int }}{% else %}unknown{% endif %}
-
-    - name: "Lawn 3 Days Since Mow"
+        {% set ts = state_attr('input_datetime.lawn_2_last_mow_1', 'timestamp') %} {% if ts %}{{
+        ((now().timestamp() - ts) / 86400) | round(0) | int }}{% else %}unknown{% endif %}
+    - name: Lawn 3 Days Since Mow
       unique_id: lawn_3_days_since_mow
-      unit_of_measurement: "d"
+      unit_of_measurement: d
       icon: mdi:calendar-check
       state: >
-        {% set ts = state_attr('input_datetime.lawn_3_last_mow_1', 'timestamp') %}
-        {% if ts %}{{ ((now().timestamp() - ts) / 86400) | round(0) | int }}{% else %}unknown{% endif %}
+        {% set ts = state_attr('input_datetime.lawn_3_last_mow_1', 'timestamp') %} {% if ts %}{{
+        ((now().timestamp() - ts) / 86400) | round(0) | int }}{% else %}unknown{% endif %}
+- binary_sensor:
+    - name: Mowing Conditions Blocked
+      unique_id: mowing_conditions_blocked
+      icon: mdi:robot-mower-off
+      state: >-
+        {% set rain_enabled = is_state('input_boolean.block_rain_mowing','on') %}
 
-# ---------------------------------------------------------------------------
-# OPTIONAL rain sensors used by the rain-delay automations.
-# The automations reference  sensor.rain_today  (mm) and  sensor.rain_probability  (%).
-# If these don't exist the rain-delay simply never triggers (the automations use
-# | float(0), so a missing sensor reads as 0). To enable rain delay, point the two
-# templates below at your own weather integration and uncomment.
-#
-# Example using the core OpenWeatherMap integration (rename to match your entities):
-#
-# - sensor:
-#     - name: "Rain Today"
-#       unique_id: rain_today
-#       unit_of_measurement: "mm"
-#       state: "{{ states('sensor.openweathermap_forecast_precipitation') | float(0) }}"
-#     - name: "Rain Probability"
-#       unique_id: rain_probability
-#       unit_of_measurement: "%"
-#       state: "{{ states('sensor.openweathermap_forecast_precipitation_probability') | float(0) }}"
+        {% set rain_unknown = not is_number(states('sensor.rain_today')) or not
+        is_number(states('sensor.rain_probability')) %}
+
+        {% set wet = states('sensor.rain_today') | float(0) > 3 or states('sensor.rain_probability') |
+        float(0) > 50 %}
+
+        {% set rising = as_timestamp(state_attr('sun.sun','next_rising'), 0) %}
+
+        {% set setting = as_timestamp(state_attr('sun.sun','next_setting'), 0) %}
+
+        {% set night = not is_state('sun.sun','above_horizon') or rising == 0 or setting == 0 or
+        now().timestamp() < rising - 86400 + 3600 or now().timestamp() >= setting - 3600 %}
+
+        {{ (rain_enabled and (rain_unknown or wet)) or (is_state('input_boolean.block_night_mowing','on') and
+        night) }}
+      attributes:
+        reason: >-
+          {% set rain_enabled = is_state('input_boolean.block_rain_mowing','on') %}
+
+          {% set rain_unknown = not is_number(states('sensor.rain_today')) or not
+          is_number(states('sensor.rain_probability')) %}
+
+          {% set wet = states('sensor.rain_today') | float(0) > 3 or states('sensor.rain_probability') |
+          float(0) > 50 %}
+
+          {% set rising = as_timestamp(state_attr('sun.sun','next_rising'), 0) %}
+
+          {% set setting = as_timestamp(state_attr('sun.sun','next_setting'), 0) %}
+
+          {% set night = not is_state('sun.sun','above_horizon') or rising == 0 or setting == 0 or
+          now().timestamp() < rising - 86400 + 3600 or now().timestamp() >= setting - 3600 %}
+
+          {% if rain_enabled and rain_unknown %}Rain data unavailable
+
+          {% elif rain_enabled and wet %}Rain restriction
+
+          {% elif is_state('input_boolean.block_night_mowing','on') and night %}Night restriction
+
+          {% else %}Clear{% endif %}
+    - name: Mower Task Buttons Blocked
+      unique_id: mower_task_buttons_blocked
+      icon: mdi:alert
+      delay_on: '00:02:00'
+      state: |-
+        {% set ns = namespace(blocked=false) %}
+        {% for entity in ['button.mower_lawn_1','button.mower_lawn_2','button.mower_lawn_3'] %}
+          {% if states[entity] is none or states(entity) == 'unavailable' %}{% set ns.blocked = true %}{% endif %}
+        {% endfor %}
+        {{ states('lawn_mower.mower') in ['docked','idle'] and ns.blocked }}
+- triggers:
+    - trigger: state
+      entity_id: lawn_mower.mower
+      to: mowing
+      id: start
+    - trigger: state
+      entity_id: lawn_mower.mower
+      to: docked
+      for: '00:01:00'
+      id: end
+    - trigger: state
+      entity_id:
+        - sensor.mower_progress
+        - sensor.mower_current_location
+        - sensor.mower_last_error_code
+        - sensor.mower_last_error_time
+      id: update
+  sensor:
+    - name: Mowing Session Log
+      unique_id: mowing_session_log
+      icon: mdi:playlist-check
+      state: >-
+        {% set count = this.attributes.sessions | default([]) | count %}{{ [40, count + (1 if trigger.id ==
+        'end' and this.attributes.active | default({}) else 0)] | min }}
+      attributes:
+        active: |-
+          {% set active = this.attributes.active | default({}) %}
+          {% set valid_locations = ['','none','unknown','unavailable','path','not working','transit'] %}
+          {% if trigger.id == 'end' %}{{ {} }}
+          {% elif trigger.id == 'start' and not active %}
+            {% set request = states('input_text.mow_request').split('|') %}
+            {% set request_time = as_timestamp(request[2], 0) if request | length == 3 else 0 %}
+            {% set requested = request_time > 0 and 0 <= now().timestamp() - request_time < 420 %}
+            {% set location = states('sensor.mower_current_location') %}
+            {{ {'start': now().isoformat(), 'lawn': request[0] if requested else (location if location | lower not in valid_locations else 'Unknown'), 'source': request[1] if requested else 'app', 'progress': states('sensor.mower_progress') | float(0), 'error_code': ''} }}
+          {% elif active %}
+            {% set location = states('sensor.mower_current_location') %}
+            {% set lawn = location if active.get('lawn','Unknown') == 'Unknown' and location | lower not in valid_locations and is_state('lawn_mower.mower','mowing') else active.get('lawn','Unknown') %}
+            {% set progress = [active.get('progress',0) | float(0), states('sensor.mower_progress') | float(0)] | max %}
+            {% set err = states('sensor.mower_last_error_code') %}
+            {% set fresh_error = as_timestamp(states('sensor.mower_last_error_time'), 0) >= as_timestamp(active.get('start'), 0) and err | lower not in ['none','unknown','unavailable','0',''] %}
+            {{ dict(active, lawn=lawn, progress=progress, error_code=err if fresh_error else active.get('error_code','')) }}
+          {% else %}{{ {} }}{% endif %}
+        sessions: |-
+          {% set active = this.attributes.active | default({}) %}
+          {% set valid_locations = ['','none','unknown','unavailable','path','not working','transit'] %}
+          {% set sessions = this.attributes.sessions | default([]) %}
+          {% if trigger.id == 'end' and active %}
+            {% set progress = active.get('progress',0) | float(0) %}
+            {% set error = active.get('error_code','') %}
+            {% set outcome = 'completed' if progress >= 99 else ('error' if error else 'partial') %}
+            {% set session = {'mower': 'Mower', 'lawn': active.get('lawn','Unknown'), 'source': active.get('source','app'), 'start': active.start, 'end': now().isoformat(), 'duration_min': ((now().timestamp() - as_timestamp(active.start, now().timestamp())) / 60) | round(0) | int, 'progress_end': progress | round(0) | int, 'outcome': outcome, 'finished': outcome == 'completed', 'error_code': error} %}
+            {{ ([session] + sessions)[:40] }}
+          {% else %}{{ sessions }}{% endif %}
+- triggers:
+    - trigger: state
+      entity_id: lawn_mower.mower_2
+      to: mowing
+      id: start
+    - trigger: state
+      entity_id: lawn_mower.mower_2
+      to: docked
+      for: '00:01:00'
+      id: end
+    - trigger: state
+      entity_id:
+        - sensor.mower_2_progress
+        - sensor.mower_2_current_location
+        - sensor.mower_2_last_error_code
+        - sensor.mower_2_last_error_time
+      id: update
+  sensor:
+    - name: Mowing Session Log 2
+      unique_id: mowing_session_log_2
+      icon: mdi:playlist-check
+      state: >-
+        {% set count = this.attributes.sessions | default([]) | count %}{{ [40, count + (1 if trigger.id ==
+        'end' and this.attributes.active | default({}) else 0)] | min }}
+      attributes:
+        active: |-
+          {% set active = this.attributes.active | default({}) %}
+          {% set valid_locations = ['','none','unknown','unavailable','path','not working','transit'] %}
+          {% if trigger.id == 'end' %}{{ {} }}
+          {% elif trigger.id == 'start' and not active %}
+            {% set request = states('input_text.mow_request_2').split('|') %}
+            {% set request_time = as_timestamp(request[2], 0) if request | length == 3 else 0 %}
+            {% set requested = request_time > 0 and 0 <= now().timestamp() - request_time < 420 %}
+            {% set location = states('sensor.mower_2_current_location') %}
+            {{ {'start': now().isoformat(), 'lawn': request[0] if requested else (location if location | lower not in valid_locations else 'Unknown'), 'source': request[1] if requested else 'app', 'progress': states('sensor.mower_2_progress') | float(0), 'error_code': ''} }}
+          {% elif active %}
+            {% set location = states('sensor.mower_2_current_location') %}
+            {% set lawn = location if active.get('lawn','Unknown') == 'Unknown' and location | lower not in valid_locations and is_state('lawn_mower.mower_2','mowing') else active.get('lawn','Unknown') %}
+            {% set progress = [active.get('progress',0) | float(0), states('sensor.mower_2_progress') | float(0)] | max %}
+            {% set err = states('sensor.mower_2_last_error_code') %}
+            {% set fresh_error = as_timestamp(states('sensor.mower_2_last_error_time'), 0) >= as_timestamp(active.get('start'), 0) and err | lower not in ['none','unknown','unavailable','0',''] %}
+            {{ dict(active, lawn=lawn, progress=progress, error_code=err if fresh_error else active.get('error_code','')) }}
+          {% else %}{{ {} }}{% endif %}
+        sessions: |-
+          {% set active = this.attributes.active | default({}) %}
+          {% set valid_locations = ['','none','unknown','unavailable','path','not working','transit'] %}
+          {% set sessions = this.attributes.sessions | default([]) %}
+          {% if trigger.id == 'end' and active %}
+            {% set progress = active.get('progress',0) | float(0) %}
+            {% set error = active.get('error_code','') %}
+            {% set outcome = 'completed' if progress >= 99 else ('error' if error else 'partial') %}
+            {% set session = {'mower': 'Mower 2', 'lawn': active.get('lawn','Unknown'), 'source': active.get('source','app'), 'start': active.start, 'end': now().isoformat(), 'duration_min': ((now().timestamp() - as_timestamp(active.start, now().timestamp())) / 60) | round(0) | int, 'progress_end': progress | round(0) | int, 'outcome': outcome, 'finished': outcome == 'completed', 'error_code': error} %}
+            {{ ([session] + sessions)[:40] }}
+          {% else %}{{ sessions }}{% endif %}
+- sensor:
+    - name: Mower Last Lawn
+      unique_id: mower_last_lawn
+      icon: mdi:robot-mower
+      state: |-
+        {% set active = state_attr('sensor.mowing_session_log','active') or {} %}
+        {% set sessions = state_attr('sensor.mowing_session_log','sessions') or [] %}
+        {{ active.get('lawn') or (sessions[0].lawn if sessions else 'No lawn recorded') }}
+      attributes:
+        since: >-
+          {% set active = state_attr('sensor.mowing_session_log','active') or {} %}
+
+          {% set sessions = state_attr('sensor.mowing_session_log','sessions') or [] %}
+
+          {% set ts = as_timestamp(active.get('start') or (sessions[0].start if sessions else none), 0) %}
+
+          {% set minutes = ((now().timestamp() - ts) / 60) | int if ts else 0 %}
+
+          {% if not ts %}unknown{% elif minutes < 60 %}{{ minutes }}m{% elif minutes < 1440 %}{{ minutes // 60
+          }}h{% else %}{{ minutes // 1440 }}d{% endif %}
+- sensor:
+    - name: Mower 2 Last Lawn
+      unique_id: mower_2_last_lawn
+      icon: mdi:robot-mower
+      state: |-
+        {% set active = state_attr('sensor.mowing_session_log_2','active') or {} %}
+        {% set sessions = state_attr('sensor.mowing_session_log_2','sessions') or [] %}
+        {{ active.get('lawn') or (sessions[0].lawn if sessions else 'No lawn recorded') }}
+      attributes:
+        since: >-
+          {% set active = state_attr('sensor.mowing_session_log_2','active') or {} %}
+
+          {% set sessions = state_attr('sensor.mowing_session_log_2','sessions') or [] %}
+
+          {% set ts = as_timestamp(active.get('start') or (sessions[0].start if sessions else none), 0) %}
+
+          {% set minutes = ((now().timestamp() - ts) / 60) | int if ts else 0 %}
+
+          {% if not ts %}unknown{% elif minutes < 60 %}{{ minutes }}m{% elif minutes < 1440 %}{{ minutes // 60
+          }}h{% else %}{{ minutes // 1440 }}d{% endif %}
+- sensor:
+    - name: Mowing Block Reason
+      unique_id: mowing_block_reason
+      state: >-
+        {{ 'Manual block' if is_state('input_boolean.do_not_mow','on') else
+        state_attr('binary_sensor.mowing_conditions_blocked','reason') | default('Clear',true) }}

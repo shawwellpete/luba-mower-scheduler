@@ -1,31 +1,22 @@
-# Per-zone mow frequency.
-# Add under   input_select: !include input_select.yaml   in configuration.yaml
-#
-# One block per lawn. Copy/rename for as many zones as you have.
-
+# Zone frequencies restore their previous value after restart; never is the default on first installation.
 lawn_1_schedule:
   name: Lawn 1 Schedule
   options:
     - never
     - once per week
     - twice per week
-  initial: never
   icon: mdi:calendar-clock
-
 lawn_2_schedule:
   name: Lawn 2 Schedule
   options:
     - never
     - once per week
     - twice per week
-  initial: never
   icon: mdi:calendar-clock
-
 lawn_3_schedule:
   name: Lawn 3 Schedule
   options:
     - never
     - once per week
     - twice per week
-  initial: never
   icon: mdi:calendar-clock
